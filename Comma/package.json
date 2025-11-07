@@ -1,0 +1,31 @@
+{
+  "name": "Comma",
+  "author": "Vladislav 'midlneedle' Iv ",
+  "version": "1.2.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Comma",
+    "uuid": "00000000-0000-0000-0000-000000000001",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "projectType": "native",
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite",
+      "emery"
+    ],
+    "watchapp": {
+      "watchface": true
+    },
+    "messageKeys": {
+      "dummy": 0
+    },
+    "resources": {
+      "media": []
+    }
+  }
+}
