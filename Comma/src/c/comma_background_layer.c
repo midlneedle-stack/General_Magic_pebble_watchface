@@ -287,9 +287,12 @@ static void prv_draw_background_shape(GContext *ctx, const GPoint origin,
                      inner, size - inner - 1);
       break;
     case 0: {
-      const int start = (size - core_size) / 2;
-      prv_fill_block(ctx, origin, start, start + core_size - 1,
-                     start, start + core_size - 1);
+      const int core_w = (size >= 8) ? 4 : core_size;
+      const int core_h = (size >= 8) ? 4 : core_size;
+      const int start_col = (size - core_w) / 2;
+      const int start_row = (size - core_h) / 2;
+      prv_fill_block(ctx, origin, start_row, start_row + core_h - 1,
+                     start_col, start_col + core_w - 1);
       break;
     }
     default:

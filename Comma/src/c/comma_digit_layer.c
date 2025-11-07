@@ -280,7 +280,7 @@ static void prv_draw_digit_shape(GContext *ctx, const GRect frame,
   const int size = COMMA_CELL_SIZE;
   const int outer = 1;
   const int inner = (size >= 8) ? 2 : 1;
-  const int core_size = (size >= 8) ? 3 : 2;
+  const int legacy_core = (size >= 8) ? 3 : 2;
   switch (size_level) {
     case 2:
       prv_fill_block(ctx, origin, outer, size - outer - 1,
@@ -295,9 +295,12 @@ static void prv_draw_digit_shape(GContext *ctx, const GRect frame,
                      inner, size - inner - 1);
       break;
     case 0: {
-      const int start = (size - core_size) / 2;
-      prv_fill_block(ctx, origin, start, start + core_size - 1,
-                     start, start + core_size - 1);
+      const int core_w = (size >= 8) ? 4 : legacy_core;
+      const int core_h = (size >= 8) ? 4 : legacy_core;
+      const int start_col = (size - core_w) / 2;
+      const int start_row = (size - core_h) / 2;
+      prv_fill_block(ctx, origin, start_row, start_row + core_h - 1,
+                     start_col, start_col + core_w - 1);
       break;
     }
     default:
