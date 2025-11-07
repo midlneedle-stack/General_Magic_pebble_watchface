@@ -3,23 +3,44 @@
 #include <pebble.h>
 
 enum {
-  COMMA_GRID_COLS = 24,
-  COMMA_GRID_ROWS = 28,
   COMMA_CELL_SIZE = 6,
   COMMA_DIGIT_WIDTH = 4,
   COMMA_DIGIT_HEIGHT = 9,
   COMMA_DIGIT_COLON_WIDTH = 2,
   COMMA_DIGIT_COUNT = 4,
   COMMA_DIGIT_GAP = 1,
-  COMMA_DIGIT_START_COL = 1,
-  COMMA_DIGIT_START_ROW = 10,
 };
 
+#define COMMA_TOTAL_GLYPHS (COMMA_DIGIT_COUNT + 1)
+#define COMMA_DIGIT_SPAN_COLS \
+  ((COMMA_DIGIT_WIDTH * COMMA_DIGIT_COUNT) + COMMA_DIGIT_COLON_WIDTH + \
+   (COMMA_DIGIT_GAP * (COMMA_TOTAL_GLYPHS - 1)))
+
+#define COMMA_BG_MAX_COLS 35
+#define COMMA_BG_MAX_ROWS 40
+#define COMMA_BG_CELL_CAPACITY (COMMA_BG_MAX_COLS * COMMA_BG_MAX_ROWS)
+
+typedef struct {
+  int grid_cols;
+  int grid_rows;
+  int digit_start_col;
+  int digit_start_row;
+  int offset_x;
+  int offset_y;
+} CommaLayout;
+
+void comma_layout_configure(GSize bounds);
+const CommaLayout *comma_layout_get(void);
+
 static inline GPoint comma_cell_origin(int cell_col, int cell_row) {
-  return GPoint(cell_col * COMMA_CELL_SIZE, cell_row * COMMA_CELL_SIZE);
+  const CommaLayout *layout = comma_layout_get();
+  return GPoint(layout->offset_x + (cell_col * COMMA_CELL_SIZE),
+                layout->offset_y + (cell_row * COMMA_CELL_SIZE));
 }
 
 static inline GRect comma_cell_frame(int cell_col, int cell_row) {
-  return GRect(cell_col * COMMA_CELL_SIZE, cell_row * COMMA_CELL_SIZE,
+  const CommaLayout *layout = comma_layout_get();
+  return GRect(layout->offset_x + (cell_col * COMMA_CELL_SIZE),
+               layout->offset_y + (cell_row * COMMA_CELL_SIZE),
                COMMA_CELL_SIZE, COMMA_CELL_SIZE);
 }

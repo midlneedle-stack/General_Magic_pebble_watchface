@@ -11,7 +11,6 @@
 #define COMMA_DIGIT_TIMER_MS 16
 #define COMMA_DIGIT_COMPACT_THRESHOLD 0.15f
 #define COMMA_DIGIT_FULL_THRESHOLD 0.45f
-#define COMMA_TOTAL_GLYPHS (COMMA_DIGIT_COUNT + 1)
 
 typedef struct {
   int16_t digits[COMMA_DIGIT_COUNT];
@@ -89,7 +88,7 @@ static int prv_glyph_for_slot(const CommaDigitLayerState *state, int slot) {
 }
 
 static bool prv_update_slot_levels(CommaDigitLayerState *state, int slot,
-                                   int base_col) {
+                                   int base_col, const CommaLayout *layout) {
   if (!state || !state->background) {
     return true;
   }
@@ -117,7 +116,7 @@ static bool prv_update_slot_levels(CommaDigitLayerState *state, int slot,
       }
       const bool pinned = pin_mask & bit;
       const int grid_col = base_col + col;
-      const int grid_row = COMMA_DIGIT_START_ROW + row;
+      const int grid_row = layout->digit_start_row + row;
 
       if (pinned) {
         float progress = 0.0f;
@@ -151,13 +150,15 @@ static bool prv_step_digit_levels(CommaDigitLayerState *state) {
   }
 
   bool all_complete = true;
-  int base_col = COMMA_DIGIT_START_COL;
+  const CommaLayout *layout = comma_layout_get();
+  int base_col = layout->digit_start_col;
   for (int slot = 0; slot < COMMA_TOTAL_GLYPHS; ++slot) {
     if (!prv_digit_present(state, slot)) {
       prv_zero_cell_levels(state, slot);
       continue;
     }
-    const bool slot_done = prv_update_slot_levels(state, slot, base_col);
+    const bool slot_done =
+        prv_update_slot_levels(state, slot, base_col, layout);
     if (!slot_done) {
       all_complete = false;
     }
@@ -296,8 +297,9 @@ static void prv_digit_layer_update_proc(Layer *layer, GContext *ctx) {
   graphics_context_set_fill_color(ctx, comma_palette_digit_fill());
   const GColor base_stroke = comma_palette_digit_stroke();
 
-  int cell_col = COMMA_DIGIT_START_COL;
-  const int cell_row = COMMA_DIGIT_START_ROW;
+  const CommaLayout *layout = comma_layout_get();
+  int cell_col = layout->digit_start_col;
+  const int cell_row = layout->digit_start_row;
 
   for (int slot = 0; slot < COMMA_TOTAL_GLYPHS; ++slot) {
     if (!prv_digit_present(state, slot)) {

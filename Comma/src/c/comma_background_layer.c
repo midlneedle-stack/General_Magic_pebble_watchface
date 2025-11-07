@@ -9,7 +9,6 @@
 #include "comma_layout.h"
 #include "comma_palette.h"
 
-#define COMMA_BG_CELL_COUNT (COMMA_GRID_COLS * COMMA_GRID_ROWS)
 #define COMMA_BG_FRAME_MS 16 /* target ~60fps */
 #define COMMA_BG_CELL_ANIM_MS 1040
 #define COMMA_BG_CELL_STAGGER_MIN_MS 0
@@ -28,7 +27,7 @@ typedef struct {
 } CommaBackgroundCellState;
 
 typedef struct {
-  CommaBackgroundCellState cells[COMMA_BG_CELL_COUNT];
+  CommaBackgroundCellState cells[COMMA_BG_CELL_CAPACITY];
   bool animation_complete;
   bool intro_complete;
   int32_t intro_elapsed_ms;
@@ -46,11 +45,8 @@ static inline CommaBackgroundLayerState *prv_get_state(CommaBackgroundLayer *lay
   return (layer && layer->layer) ? layer->state : NULL;
 }
 
-static bool s_digit_cell_mask_initialized;
-static bool s_digit_cell_mask[COMMA_BG_CELL_COUNT];
-
 static inline int prv_cell_index(int col, int row) {
-  return (row * COMMA_GRID_COLS) + col;
+  return (row * COMMA_BG_MAX_COLS) + col;
 }
 
 static float prv_ease(float t) {
@@ -80,28 +76,24 @@ static int32_t prv_random_range(int32_t min_inclusive, int32_t max_inclusive) {
   return min_inclusive + (rand() % span);
 }
 
-static float prv_digit_center_col(void) {
-  const float total_width =
-      (COMMA_DIGIT_WIDTH * COMMA_DIGIT_COUNT) + COMMA_DIGIT_COLON_WIDTH +
-      (COMMA_DIGIT_GAP * 4);
-  return COMMA_DIGIT_START_COL + (total_width / 2.0f);
+static float prv_digit_center_col(const CommaLayout *layout) {
+  return layout->digit_start_col + ((COMMA_DIGIT_SPAN_COLS - 1) / 2.0f);
 }
 
-static float prv_digit_center_row(void) {
-  return COMMA_DIGIT_START_ROW + (COMMA_DIGIT_HEIGHT / 2.0f);
+static float prv_digit_center_row(const CommaLayout *layout) {
+  return layout->digit_start_row + ((COMMA_DIGIT_HEIGHT - 1) / 2.0f);
 }
 
-static float prv_cell_bias(int cell_col, int cell_row) {
-  const float col_center = prv_digit_center_col();
-  const float row_center = prv_digit_center_row();
+static float prv_cell_bias(int cell_col, int cell_row,
+                           const CommaLayout *layout) {
+  const float col_center = prv_digit_center_col(layout);
+  const float row_center = prv_digit_center_row(layout);
 
-  const float col_half_span =
-      ((COMMA_DIGIT_WIDTH * COMMA_DIGIT_COUNT) + COMMA_DIGIT_COLON_WIDTH) /
-      2.0f;
+  const float col_half_span = (COMMA_DIGIT_SPAN_COLS / 2.0f);
   const float row_half_span = (COMMA_DIGIT_HEIGHT / 2.0f);
 
-  const float col_dist = fabsf(((float)cell_col) - col_center) /
-                         (col_half_span + 1.0f);
+  const float col_dist =
+      fabsf(((float)cell_col) - col_center) / (col_half_span + 1.0f);
   const float row_dist =
       fabsf(((float)cell_row) - row_center) / (row_half_span + 1.0f);
 
@@ -112,7 +104,7 @@ static float prv_cell_bias(int cell_col, int cell_row) {
   if (row_dist < 1.0f) {
     bias += (1.0f - row_dist) * 0.8f;
   }
-  bias /= 1.8f; /* normalize back into 0..~1 */
+  bias /= 1.8f;
   if (bias < 0.0f) {
     bias = 0.0f;
   } else if (bias > 1.0f) {
@@ -121,20 +113,39 @@ static float prv_cell_bias(int cell_col, int cell_row) {
   return bias;
 }
 
-static bool prv_should_activate_cell(int cell_col, int cell_row) {
-  const int idx = prv_cell_index(cell_col, cell_row);
-  const bool in_digit = s_digit_cell_mask_initialized && s_digit_cell_mask[idx];
-  if (in_digit) {
-    return true;
+static bool prv_cell_is_digit(int cell_col, int cell_row,
+                              const CommaLayout *layout) {
+  const int rel_row = cell_row - layout->digit_start_row;
+  if (rel_row < 0 || rel_row >= COMMA_DIGIT_HEIGHT) {
+    return false;
   }
-  int percent =
-      COMMA_BG_ACTIVE_PERCENT +
-      (int)(prv_cell_bias(cell_col, cell_row) * 32.0f);
-  if (percent > 100) {
-    percent = 100;
+
+  int slot_col = layout->digit_start_col;
+  for (int slot = 0; slot < COMMA_TOTAL_GLYPHS; ++slot) {
+    const bool is_colon = (slot == 2);
+    const int width = is_colon ? COMMA_DIGIT_COLON_WIDTH : COMMA_DIGIT_WIDTH;
+    if (cell_col >= slot_col && cell_col < slot_col + width) {
+      const int rel_col = cell_col - slot_col;
+      if (is_colon) {
+        const CommaGlyph *glyph = &COMMA_GLYPHS[COMMA_GLYPH_COLON];
+        return glyph->rows[rel_row] &
+               (1 << (glyph->width - 1 - rel_col));
+      }
+      const int bit = 1 << (COMMA_DIGIT_WIDTH - 1 - rel_col);
+      for (int glyph = COMMA_GLYPH_ZERO; glyph <= COMMA_GLYPH_NINE; ++glyph) {
+        const CommaGlyph *g = &COMMA_GLYPHS[glyph];
+        if (g->rows[rel_row] & bit) {
+          return true;
+        }
+      }
+      return false;
+    }
+    slot_col += width;
+    if (slot < COMMA_TOTAL_GLYPHS - 1) {
+      slot_col += COMMA_DIGIT_GAP;
+    }
   }
-  const int roll = rand() % 100;
-  return roll < percent;
+  return false;
 }
 
 static void prv_reset_cell(CommaBackgroundCellState *cell) {
@@ -153,72 +164,37 @@ static void prv_reset_cell(CommaBackgroundCellState *cell) {
       prv_random_range(COMMA_BG_CELL_STAGGER_MIN_MS, COMMA_BG_CELL_STAGGER_MAX_MS);
 }
 
-static void prv_mark_glyph_cells(int base_col, const CommaGlyph *glyph) {
-  if (!glyph) {
-    return;
-  }
-  const int base_row = COMMA_DIGIT_START_ROW;
-  for (int row = 0; row < COMMA_DIGIT_HEIGHT; ++row) {
-    const uint8_t mask = glyph->rows[row];
-    if (!mask) {
-      continue;
-    }
-    for (int col = 0; col < glyph->width; ++col) {
-      if (mask & (1 << (glyph->width - 1 - col))) {
-        const int cell_col = base_col + col;
-        const int cell_row = base_row + row;
-        if (cell_col >= 0 && cell_col < COMMA_GRID_COLS &&
-            cell_row >= 0 && cell_row < COMMA_GRID_ROWS) {
-          s_digit_cell_mask[prv_cell_index(cell_col, cell_row)] = true;
-        }
-      }
-    }
-  }
-}
-
-static void prv_init_digit_cell_mask(void) {
-  if (s_digit_cell_mask_initialized) {
-    return;
-  }
-  memset(s_digit_cell_mask, 0, sizeof(s_digit_cell_mask));
-
-  int col = COMMA_DIGIT_START_COL;
-  for (int slot = 0; slot < 2; ++slot) {
-    for (int glyph = COMMA_GLYPH_ZERO; glyph <= COMMA_GLYPH_NINE; ++glyph) {
-      prv_mark_glyph_cells(col, &COMMA_GLYPHS[glyph]);
-    }
-    col += COMMA_DIGIT_WIDTH + COMMA_DIGIT_GAP;
-  }
-
-  prv_mark_glyph_cells(col, &COMMA_GLYPHS[COMMA_GLYPH_COLON]);
-  col += COMMA_DIGIT_COLON_WIDTH + COMMA_DIGIT_GAP;
-
-  for (int slot = 0; slot < 2; ++slot) {
-    for (int glyph = COMMA_GLYPH_ZERO; glyph <= COMMA_GLYPH_NINE; ++glyph) {
-      prv_mark_glyph_cells(col, &COMMA_GLYPHS[glyph]);
-    }
-    col += COMMA_DIGIT_WIDTH + COMMA_DIGIT_GAP;
-  }
-
-  s_digit_cell_mask_initialized = true;
-}
-
 static void prv_init_cells(CommaBackgroundLayerState *state) {
   if (!state) {
     return;
   }
+  const CommaLayout *layout = comma_layout_get();
+  const int grid_cols = layout->grid_cols;
+  const int grid_rows = layout->grid_rows;
+  memset(state->cells, 0, sizeof(state->cells));
   state->animation_complete = false;
   state->intro_complete = false;
   state->intro_elapsed_ms = 0;
   state->activation_window_ms = COMMA_BG_CELL_STAGGER_MIN_MS;
   state->activation_ratio = 0.0f;
-  for (int idx = 0; idx < COMMA_BG_CELL_COUNT; ++idx) {
-    const int cell_row = idx / COMMA_GRID_COLS;
-    const int cell_col = idx % COMMA_GRID_COLS;
-    CommaBackgroundCellState *cell = &state->cells[idx];
-    cell->active = prv_should_activate_cell(cell_col, cell_row);
-    cell->is_digit = s_digit_cell_mask[idx];
-    prv_reset_cell(cell);
+  for (int row = 0; row < grid_rows; ++row) {
+    for (int col = 0; col < grid_cols; ++col) {
+      const int idx = prv_cell_index(col, row);
+      CommaBackgroundCellState *cell = &state->cells[idx];
+      const bool is_digit = prv_cell_is_digit(col, row, layout);
+      cell->is_digit = is_digit;
+      if (is_digit) {
+        cell->active = true;
+      } else {
+        int percent = COMMA_BG_ACTIVE_PERCENT +
+                      (int)(prv_cell_bias(col, row, layout) * 32.0f);
+        if (percent > 100) {
+          percent = 100;
+        }
+        cell->active = (rand() % 100) < percent;
+      }
+      prv_reset_cell(cell);
+    }
   }
 }
 
@@ -397,9 +373,12 @@ static bool prv_step_animation(CommaBackgroundLayer *layer) {
         COMMA_BG_CELL_STAGGER_MIN_MS + (int)((float)span * eased);
   }
 
+  const CommaLayout *layout = comma_layout_get();
   bool all_complete = true;
-  for (int idx = 0; idx < COMMA_BG_CELL_COUNT; ++idx) {
-    CommaBackgroundCellState *cell = &state->cells[idx];
+  for (int row = 0; row < layout->grid_rows; ++row) {
+    for (int col = 0; col < layout->grid_cols; ++col) {
+      CommaBackgroundCellState *cell =
+          &state->cells[prv_cell_index(col, row)];
     if (!cell->active) {
       continue;
     }
@@ -418,6 +397,7 @@ static bool prv_step_animation(CommaBackgroundLayer *layer) {
     if (cell->elapsed_ms >= max_elapsed) {
       cell->elapsed_ms = max_elapsed;
       cell->complete = true;
+      }
     }
   }
 
@@ -465,19 +445,7 @@ static void prv_start_animation(CommaBackgroundLayer *layer) {
   }
   CommaBackgroundLayerState *state = prv_get_state(layer);
   if (state) {
-    state->animation_complete = false;
-    state->intro_complete = false;
-    state->intro_elapsed_ms = 0;
-    state->activation_window_ms = COMMA_BG_CELL_STAGGER_MIN_MS;
-    state->activation_ratio = 0.0f;
-    for (int idx = 0; idx < COMMA_BG_CELL_COUNT; ++idx) {
-      const int cell_row = idx / COMMA_GRID_COLS;
-      const int cell_col = idx % COMMA_GRID_COLS;
-      CommaBackgroundCellState *cell = &state->cells[idx];
-      cell->active = prv_should_activate_cell(cell_col, cell_row);
-      cell->is_digit = s_digit_cell_mask[idx];
-      prv_reset_cell(cell);
-    }
+    prv_init_cells(state);
   }
   prv_schedule_timer(layer);
 }
@@ -500,17 +468,18 @@ static void prv_background_update_proc(Layer *layer_ref, GContext *ctx) {
   graphics_context_set_fill_color(ctx, comma_palette_background_fill());
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
+  const CommaLayout *layout = comma_layout_get();
   graphics_context_set_stroke_color(ctx, comma_palette_background_stroke());
-  for (int row = 0; row < COMMA_GRID_ROWS; ++row) {
-    for (int col = 0; col < COMMA_GRID_COLS; ++col) {
+  for (int row = 0; row < layout->grid_rows; ++row) {
+    for (int col = 0; col < layout->grid_cols; ++col) {
       prv_draw_background_cell(ctx, col, row, 0);
     }
   }
 
-  int cell_index = 0;
-  for (int row = 0; row < COMMA_GRID_ROWS; ++row) {
-    for (int col = 0; col < COMMA_GRID_COLS; ++col, ++cell_index) {
-      CommaBackgroundCellState *cell = &state->cells[cell_index];
+  for (int row = 0; row < layout->grid_rows; ++row) {
+    for (int col = 0; col < layout->grid_cols; ++col) {
+      CommaBackgroundCellState *cell =
+          &state->cells[prv_cell_index(col, row)];
       float progress = 0.0f;
       if (!prv_cell_progress_value(state, cell, &progress)) {
         continue;
@@ -528,7 +497,6 @@ static void prv_background_update_proc(Layer *layer_ref, GContext *ctx) {
 
 CommaBackgroundLayer *comma_background_layer_create(GRect frame) {
   prv_seed_random();
-  prv_init_digit_cell_mask();
 
   CommaBackgroundLayer *layer = calloc(1, sizeof(*layer));
   if (!layer) {
@@ -576,15 +544,16 @@ void comma_background_layer_mark_dirty(CommaBackgroundLayer *layer) {
 }
 
 bool comma_background_layer_cell_progress(CommaBackgroundLayer *layer,
-                                           int cell_col,
-                                           int cell_row,
-                                           float *progress_out) {
+                                          int cell_col,
+                                          int cell_row,
+                                          float *progress_out) {
   CommaBackgroundLayerState *state = prv_get_state(layer);
   if (!state || !progress_out) {
     return false;
   }
-  if (cell_col < 0 || cell_col >= COMMA_GRID_COLS || cell_row < 0 ||
-      cell_row >= COMMA_GRID_ROWS) {
+  const CommaLayout *layout = comma_layout_get();
+  if (cell_col < 0 || cell_col >= layout->grid_cols || cell_row < 0 ||
+      cell_row >= layout->grid_rows) {
     *progress_out = 0.0f;
     return false;
   }

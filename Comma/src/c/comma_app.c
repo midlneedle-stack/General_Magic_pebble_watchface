@@ -2,6 +2,7 @@
 
 #include "comma_background_layer.h"
 #include "comma_digit_layer.h"
+#include "comma_layout.h"
 #include "comma_palette.h"
 
 static Window *s_main_window;
@@ -17,6 +18,7 @@ static void prv_window_load(Window *window) {
   Layer *root = window_get_root_layer(window);
   const GRect bounds = layer_get_bounds(root);
 
+  comma_layout_configure(bounds.size);
   s_background_layer = comma_background_layer_create(bounds);
   if (s_background_layer) {
     layer_add_child(root, comma_background_layer_get_layer(s_background_layer));
