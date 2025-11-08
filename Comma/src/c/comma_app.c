@@ -9,6 +9,32 @@ static Window *s_main_window;
 static CommaBackgroundLayer *s_background_layer;
 static CommaDigitLayer *s_digit_layer;
 
+static const uint32_t s_intro_vibe_segments[] = {
+    /* single tap – light intro */
+    24, 160,
+    /* two taps – beginning to swell */
+    26, 120, 29, 150,
+    /* three taps – mid lift */
+    30, 95, 28, 95, 26, 150,
+    /* four taps – peak intensity */
+    34, 75, 32, 75, 30, 75, 28, 170,
+    /* taper back down */
+    26, 140, 25, 210,
+    22, 250, 20, 340,
+};
+
+static void prv_play_intro_vibe(void) {
+  if (quiet_time_is_active()) {
+    return;
+  }
+  const VibePattern pattern = {
+      .durations = s_intro_vibe_segments,
+      .num_segments = ARRAY_LENGTH(s_intro_vibe_segments),
+  };
+  vibes_cancel();
+  vibes_enqueue_custom_pattern(pattern);
+}
+
 static void prv_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   (void)units_changed;
   comma_digit_layer_set_time(s_digit_layer, tick_time);
@@ -29,7 +55,6 @@ static void prv_window_load(Window *window) {
     layer_add_child(root, comma_digit_layer_get_layer(s_digit_layer));
     comma_digit_layer_bind_background(s_digit_layer, s_background_layer);
     comma_digit_layer_refresh_time(s_digit_layer);
-    comma_digit_layer_start_diag_flip(s_digit_layer);
   }
 }
 
@@ -43,11 +68,20 @@ static void prv_window_unload(Window *window) {
   s_background_layer = NULL;
 }
 
+static void prv_window_appear(Window *window) {
+  (void)window;
+  if (s_digit_layer) {
+    comma_digit_layer_start_diag_flip(s_digit_layer);
+  }
+  prv_play_intro_vibe();
+}
+
 static void prv_init(void) {
   s_main_window = window_create();
   window_set_background_color(s_main_window, comma_palette_window_background());
   window_set_window_handlers(s_main_window, (WindowHandlers){
                                             .load = prv_window_load,
+                                            .appear = prv_window_appear,
                                             .unload = prv_window_unload,
                                           });
 
