@@ -1,29 +1,29 @@
-#include "comma_background_layer.h"
+#include "general_magic_background_layer.h"
 
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-#include "comma_glyphs.h"
-#include "comma_layout.h"
-#include "comma_palette.h"
+#include "general_magic_glyphs.h"
+#include "general_magic_layout.h"
+#include "general_magic_palette.h"
 
-#define COMMA_BG_FRAME_MS 16 /* target ~60fps */
+#define GENERAL_MAGIC_BG_FRAME_MS 16 /* target ~60fps */
 #if defined(PBL_PLATFORM_EMERY)
-#define COMMA_BG_CELL_ANIM_MS 728
-#define COMMA_BG_CELL_STAGGER_MIN_MS 0
-#define COMMA_BG_CELL_STAGGER_MAX_MS 235
-#define COMMA_BG_ACTIVATION_DURATION_MS 291
+#define GENERAL_MAGIC_BG_CELL_ANIM_MS 728
+#define GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS 0
+#define GENERAL_MAGIC_BG_CELL_STAGGER_MAX_MS 235
+#define GENERAL_MAGIC_BG_ACTIVATION_DURATION_MS 291
 #else
-#define COMMA_BG_CELL_ANIM_MS 1300
-#define COMMA_BG_CELL_STAGGER_MIN_MS 0
-#define COMMA_BG_CELL_STAGGER_MAX_MS 420
-#define COMMA_BG_ACTIVATION_DURATION_MS 520
+#define GENERAL_MAGIC_BG_CELL_ANIM_MS 1300
+#define GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS 0
+#define GENERAL_MAGIC_BG_CELL_STAGGER_MAX_MS 420
+#define GENERAL_MAGIC_BG_ACTIVATION_DURATION_MS 520
 #endif
-#define COMMA_BG_ACTIVE_PERCENT 18
-#define COMMA_BG_ACTIVE_DIGIT_PERCENT 100
-#define COMMA_BG_INTRO_DELAY_MS 120
+#define GENERAL_MAGIC_BG_ACTIVE_PERCENT 18
+#define GENERAL_MAGIC_BG_ACTIVE_DIGIT_PERCENT 100
+#define GENERAL_MAGIC_BG_INTRO_DELAY_MS 120
 
 typedef struct {
   int32_t elapsed_ms;
@@ -31,29 +31,29 @@ typedef struct {
   bool complete;
   bool active;
   bool is_digit;
-} CommaBackgroundCellState;
+} GeneralMagicBackgroundCellState;
 
 typedef struct {
-  CommaBackgroundCellState cells[COMMA_BG_CELL_CAPACITY];
+  GeneralMagicBackgroundCellState cells[GENERAL_MAGIC_BG_CELL_CAPACITY];
   bool animation_complete;
   bool intro_complete;
   int32_t intro_elapsed_ms;
   int32_t activation_window_ms;
   float activation_ratio;
-} CommaBackgroundLayerState;
+} GeneralMagicBackgroundLayerState;
 
-struct CommaBackgroundLayer {
+struct GeneralMagicBackgroundLayer {
   Layer *layer;
-  CommaBackgroundLayerState *state;
+  GeneralMagicBackgroundLayerState *state;
   AppTimer *timer;
 };
 
-static inline CommaBackgroundLayerState *prv_get_state(CommaBackgroundLayer *layer) {
+static inline GeneralMagicBackgroundLayerState *prv_get_state(GeneralMagicBackgroundLayer *layer) {
   return (layer && layer->layer) ? layer->state : NULL;
 }
 
 static inline int prv_cell_index(int col, int row) {
-  return (row * COMMA_BG_MAX_COLS) + col;
+  return (row * GENERAL_MAGIC_BG_MAX_COLS) + col;
 }
 
 static float prv_ease(float t) {
@@ -83,21 +83,21 @@ static int32_t prv_random_range(int32_t min_inclusive, int32_t max_inclusive) {
   return min_inclusive + (rand() % span);
 }
 
-static float prv_digit_center_col(const CommaLayout *layout) {
-  return layout->digit_start_col + ((COMMA_DIGIT_SPAN_COLS - 1) / 2.0f);
+static float prv_digit_center_col(const GeneralMagicLayout *layout) {
+  return layout->digit_start_col + ((GENERAL_MAGIC_DIGIT_SPAN_COLS - 1) / 2.0f);
 }
 
-static float prv_digit_center_row(const CommaLayout *layout) {
-  return layout->digit_start_row + ((COMMA_DIGIT_HEIGHT - 1) / 2.0f);
+static float prv_digit_center_row(const GeneralMagicLayout *layout) {
+  return layout->digit_start_row + ((GENERAL_MAGIC_DIGIT_HEIGHT - 1) / 2.0f);
 }
 
 static float prv_cell_bias(int cell_col, int cell_row,
-                           const CommaLayout *layout) {
+                           const GeneralMagicLayout *layout) {
   const float col_center = prv_digit_center_col(layout);
   const float row_center = prv_digit_center_row(layout);
 
-  const float col_half_span = (COMMA_DIGIT_SPAN_COLS / 2.0f);
-  const float row_half_span = (COMMA_DIGIT_HEIGHT / 2.0f);
+  const float col_half_span = (GENERAL_MAGIC_DIGIT_SPAN_COLS / 2.0f);
+  const float row_half_span = (GENERAL_MAGIC_DIGIT_HEIGHT / 2.0f);
 
   const float col_dist =
       fabsf(((float)cell_col) - col_center) / (col_half_span + 1.0f);
@@ -121,26 +121,26 @@ static float prv_cell_bias(int cell_col, int cell_row,
 }
 
 static bool prv_cell_is_digit(int cell_col, int cell_row,
-                              const CommaLayout *layout) {
+                              const GeneralMagicLayout *layout) {
   const int rel_row = cell_row - layout->digit_start_row;
-  if (rel_row < 0 || rel_row >= COMMA_DIGIT_HEIGHT) {
+  if (rel_row < 0 || rel_row >= GENERAL_MAGIC_DIGIT_HEIGHT) {
     return false;
   }
 
   int slot_col = layout->digit_start_col;
-  for (int slot = 0; slot < COMMA_TOTAL_GLYPHS; ++slot) {
+  for (int slot = 0; slot < GENERAL_MAGIC_TOTAL_GLYPHS; ++slot) {
     const bool is_colon = (slot == 2);
-    const int width = is_colon ? COMMA_DIGIT_COLON_WIDTH : COMMA_DIGIT_WIDTH;
+    const int width = is_colon ? GENERAL_MAGIC_DIGIT_COLON_WIDTH : GENERAL_MAGIC_DIGIT_WIDTH;
     if (cell_col >= slot_col && cell_col < slot_col + width) {
       const int rel_col = cell_col - slot_col;
       if (is_colon) {
-        const CommaGlyph *glyph = &COMMA_GLYPHS[COMMA_GLYPH_COLON];
+        const GeneralMagicGlyph *glyph = &GENERAL_MAGIC_GLYPHS[GENERAL_MAGIC_GLYPH_COLON];
         return glyph->rows[rel_row] &
                (1 << (glyph->width - 1 - rel_col));
       }
-      const int bit = 1 << (COMMA_DIGIT_WIDTH - 1 - rel_col);
-      for (int glyph = COMMA_GLYPH_ZERO; glyph <= COMMA_GLYPH_NINE; ++glyph) {
-        const CommaGlyph *g = &COMMA_GLYPHS[glyph];
+      const int bit = 1 << (GENERAL_MAGIC_DIGIT_WIDTH - 1 - rel_col);
+      for (int glyph = GENERAL_MAGIC_GLYPH_ZERO; glyph <= GENERAL_MAGIC_GLYPH_NINE; ++glyph) {
+        const GeneralMagicGlyph *g = &GENERAL_MAGIC_GLYPHS[glyph];
         if (g->rows[rel_row] & bit) {
           return true;
         }
@@ -148,14 +148,14 @@ static bool prv_cell_is_digit(int cell_col, int cell_row,
       return false;
     }
     slot_col += width;
-    if (slot < COMMA_TOTAL_GLYPHS - 1) {
-      slot_col += COMMA_DIGIT_GAP;
+    if (slot < GENERAL_MAGIC_TOTAL_GLYPHS - 1) {
+      slot_col += GENERAL_MAGIC_DIGIT_GAP;
     }
   }
   return false;
 }
 
-static void prv_reset_cell(CommaBackgroundCellState *cell) {
+static void prv_reset_cell(GeneralMagicBackgroundCellState *cell) {
   if (!cell) {
     return;
   }
@@ -168,32 +168,32 @@ static void prv_reset_cell(CommaBackgroundCellState *cell) {
   cell->elapsed_ms = 0;
   cell->complete = false;
   cell->start_delay_ms =
-      prv_random_range(COMMA_BG_CELL_STAGGER_MIN_MS, COMMA_BG_CELL_STAGGER_MAX_MS);
+      prv_random_range(GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS, GENERAL_MAGIC_BG_CELL_STAGGER_MAX_MS);
 }
 
-static void prv_init_cells(CommaBackgroundLayerState *state) {
+static void prv_init_cells(GeneralMagicBackgroundLayerState *state) {
   if (!state) {
     return;
   }
-  const CommaLayout *layout = comma_layout_get();
+  const GeneralMagicLayout *layout = general_magic_layout_get();
   const int grid_cols = layout->grid_cols;
   const int grid_rows = layout->grid_rows;
   memset(state->cells, 0, sizeof(state->cells));
   state->animation_complete = false;
   state->intro_complete = false;
   state->intro_elapsed_ms = 0;
-  state->activation_window_ms = COMMA_BG_CELL_STAGGER_MIN_MS;
+  state->activation_window_ms = GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS;
   state->activation_ratio = 0.0f;
   for (int row = 0; row < grid_rows; ++row) {
     for (int col = 0; col < grid_cols; ++col) {
       const int idx = prv_cell_index(col, row);
-      CommaBackgroundCellState *cell = &state->cells[idx];
+      GeneralMagicBackgroundCellState *cell = &state->cells[idx];
       const bool is_digit = prv_cell_is_digit(col, row, layout);
       cell->is_digit = is_digit;
       if (is_digit) {
         cell->active = true;
       } else {
-        int percent = COMMA_BG_ACTIVE_PERCENT +
+        int percent = GENERAL_MAGIC_BG_ACTIVE_PERCENT +
                       (int)(prv_cell_bias(col, row, layout) * 32.0f);
         if (percent > 100) {
           percent = 100;
@@ -205,7 +205,7 @@ static void prv_init_cells(CommaBackgroundLayerState *state) {
   }
 }
 
-#if COMMA_CELL_SIZE == 6
+#if GENERAL_MAGIC_CELL_SIZE == 6
 static void prv_draw_row_span(GContext *ctx, const GPoint origin, int row,
                               int col_start, int col_end) {
   if (col_end < col_start) {
@@ -217,7 +217,7 @@ static void prv_draw_row_span(GContext *ctx, const GPoint origin, int row,
 }
 #endif
 
-#if COMMA_CELL_SIZE != 6
+#if GENERAL_MAGIC_CELL_SIZE != 6
 static void prv_fill_block(GContext *ctx, const GPoint origin,
                            int row_start, int row_end,
                            int col_start, int col_end) {
@@ -230,11 +230,11 @@ static void prv_fill_block(GContext *ctx, const GPoint origin,
   if (col_start < 0) {
     col_start = 0;
   }
-  if (row_end >= COMMA_CELL_SIZE) {
-    row_end = COMMA_CELL_SIZE - 1;
+  if (row_end >= GENERAL_MAGIC_CELL_SIZE) {
+    row_end = GENERAL_MAGIC_CELL_SIZE - 1;
   }
-  if (col_end >= COMMA_CELL_SIZE) {
-    col_end = COMMA_CELL_SIZE - 1;
+  if (col_end >= GENERAL_MAGIC_CELL_SIZE) {
+    col_end = GENERAL_MAGIC_CELL_SIZE - 1;
   }
   for (int row = row_start; row <= row_end; ++row) {
     for (int col = col_start; col <= col_end; ++col) {
@@ -246,7 +246,7 @@ static void prv_fill_block(GContext *ctx, const GPoint origin,
 
 static void prv_draw_background_shape(GContext *ctx, const GPoint origin,
                                       int size_level) {
-#if COMMA_CELL_SIZE == 6
+#if GENERAL_MAGIC_CELL_SIZE == 6
   switch (size_level) {
     case 2:
       for (int row = 1; row <= 4; ++row) {
@@ -269,7 +269,7 @@ static void prv_draw_background_shape(GContext *ctx, const GPoint origin,
       break;
   }
 #else
-  const int size = COMMA_CELL_SIZE;
+  const int size = GENERAL_MAGIC_CELL_SIZE;
   const int outer = 1;
   const int inner = (size >= 8) ? 2 : 1;
   const int core_size = (size >= 8) ? 3 : 2;
@@ -306,12 +306,12 @@ static void prv_draw_background_cell(GContext *ctx, int cell_col, int cell_row,
   if (size_level < 0) {
     return;
   }
-  const GRect frame = comma_cell_frame(cell_col, cell_row);
+  const GRect frame = general_magic_cell_frame(cell_col, cell_row);
   prv_draw_background_shape(ctx, frame.origin, size_level);
 }
 
-static bool prv_cell_progress_value(const CommaBackgroundLayerState *state,
-                                    const CommaBackgroundCellState *cell,
+static bool prv_cell_progress_value(const GeneralMagicBackgroundLayerState *state,
+                                    const GeneralMagicBackgroundCellState *cell,
                                     float *progress_out) {
   if (!state || !cell || !progress_out) {
     return false;
@@ -337,7 +337,7 @@ static bool prv_cell_progress_value(const CommaBackgroundLayerState *state,
   if (local < 0) {
     local = 0;
   }
-  const int32_t total = COMMA_BG_CELL_ANIM_MS;
+  const int32_t total = GENERAL_MAGIC_BG_CELL_ANIM_MS;
   if (local > total) {
     local = total;
   }
@@ -411,41 +411,41 @@ static GColor prv_color_for_progress(float progress, bool is_digit) {
   return prv_color_from_stage(0);
 }
 
-static bool prv_step_animation(CommaBackgroundLayer *layer) {
-  CommaBackgroundLayerState *state = prv_get_state(layer);
+static bool prv_step_animation(GeneralMagicBackgroundLayer *layer) {
+  GeneralMagicBackgroundLayerState *state = prv_get_state(layer);
   if (!state) {
     return true;
   }
 
   if (!state->intro_complete) {
-    state->intro_elapsed_ms += COMMA_BG_FRAME_MS;
-    if (state->intro_elapsed_ms >= COMMA_BG_INTRO_DELAY_MS) {
+    state->intro_elapsed_ms += GENERAL_MAGIC_BG_FRAME_MS;
+    if (state->intro_elapsed_ms >= GENERAL_MAGIC_BG_INTRO_DELAY_MS) {
       state->intro_complete = true;
-      state->activation_window_ms = COMMA_BG_CELL_STAGGER_MIN_MS;
+      state->activation_window_ms = GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS;
     }
     return false;
   }
 
   if (state->activation_ratio < 1.0f &&
-      COMMA_BG_ACTIVATION_DURATION_MS > 0) {
+      GENERAL_MAGIC_BG_ACTIVATION_DURATION_MS > 0) {
     state->activation_ratio +=
-        (float)COMMA_BG_FRAME_MS / (float)COMMA_BG_ACTIVATION_DURATION_MS;
+        (float)GENERAL_MAGIC_BG_FRAME_MS / (float)GENERAL_MAGIC_BG_ACTIVATION_DURATION_MS;
     if (state->activation_ratio > 1.0f) {
       state->activation_ratio = 1.0f;
     }
     const float eased =
         prv_ease(state->activation_ratio);
     const int span =
-        COMMA_BG_CELL_STAGGER_MAX_MS - COMMA_BG_CELL_STAGGER_MIN_MS;
+        GENERAL_MAGIC_BG_CELL_STAGGER_MAX_MS - GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS;
     state->activation_window_ms =
-        COMMA_BG_CELL_STAGGER_MIN_MS + (int)((float)span * eased);
+        GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS + (int)((float)span * eased);
   }
 
-  const CommaLayout *layout = comma_layout_get();
+  const GeneralMagicLayout *layout = general_magic_layout_get();
   bool all_complete = true;
   for (int row = 0; row < layout->grid_rows; ++row) {
     for (int col = 0; col < layout->grid_cols; ++col) {
-      CommaBackgroundCellState *cell =
+      GeneralMagicBackgroundCellState *cell =
           &state->cells[prv_cell_index(col, row)];
     if (!cell->active) {
       continue;
@@ -455,13 +455,13 @@ static bool prv_step_animation(CommaBackgroundLayer *layer) {
       continue;
     }
     const int32_t max_elapsed =
-        cell->start_delay_ms + COMMA_BG_CELL_ANIM_MS;
+        cell->start_delay_ms + GENERAL_MAGIC_BG_CELL_ANIM_MS;
     if (cell->complete && cell->elapsed_ms >= max_elapsed) {
       continue;
     }
 
     all_complete = false;
-    cell->elapsed_ms += COMMA_BG_FRAME_MS;
+    cell->elapsed_ms += GENERAL_MAGIC_BG_FRAME_MS;
     if (cell->elapsed_ms >= max_elapsed) {
       cell->elapsed_ms = max_elapsed;
       cell->complete = true;
@@ -477,20 +477,20 @@ static bool prv_step_animation(CommaBackgroundLayer *layer) {
 
 static void prv_timer_proc(void *ctx);
 
-static void prv_schedule_timer(CommaBackgroundLayer *layer) {
+static void prv_schedule_timer(GeneralMagicBackgroundLayer *layer) {
   if (!layer) {
     return;
   }
-  CommaBackgroundLayerState *state = prv_get_state(layer);
+  GeneralMagicBackgroundLayerState *state = prv_get_state(layer);
   if (state && state->animation_complete) {
     layer->timer = NULL;
     return;
   }
-  layer->timer = app_timer_register(COMMA_BG_FRAME_MS, prv_timer_proc, layer);
+  layer->timer = app_timer_register(GENERAL_MAGIC_BG_FRAME_MS, prv_timer_proc, layer);
 }
 
 static void prv_timer_proc(void *ctx) {
-  CommaBackgroundLayer *layer = ctx;
+  GeneralMagicBackgroundLayer *layer = ctx;
   if (!layer || !layer->layer) {
     return;
   }
@@ -503,7 +503,7 @@ static void prv_timer_proc(void *ctx) {
   }
 }
 
-static void prv_start_animation(CommaBackgroundLayer *layer) {
+static void prv_start_animation(GeneralMagicBackgroundLayer *layer) {
   if (!layer) {
     return;
   }
@@ -511,14 +511,14 @@ static void prv_start_animation(CommaBackgroundLayer *layer) {
     app_timer_cancel(layer->timer);
     layer->timer = NULL;
   }
-  CommaBackgroundLayerState *state = prv_get_state(layer);
+  GeneralMagicBackgroundLayerState *state = prv_get_state(layer);
   if (state) {
     prv_init_cells(state);
   }
   prv_schedule_timer(layer);
 }
 
-static void prv_stop_animation(CommaBackgroundLayer *layer) {
+static void prv_stop_animation(GeneralMagicBackgroundLayer *layer) {
   if (!layer || !layer->timer) {
     return;
   }
@@ -527,17 +527,17 @@ static void prv_stop_animation(CommaBackgroundLayer *layer) {
 }
 
 static void prv_background_update_proc(Layer *layer_ref, GContext *ctx) {
-  CommaBackgroundLayerState *state = layer_get_data(layer_ref);
+  GeneralMagicBackgroundLayerState *state = layer_get_data(layer_ref);
   if (!state) {
     return;
   }
 
   const GRect bounds = layer_get_bounds(layer_ref);
-  graphics_context_set_fill_color(ctx, comma_palette_background_fill());
+  graphics_context_set_fill_color(ctx, general_magic_palette_background_fill());
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
-  const CommaLayout *layout = comma_layout_get();
-  graphics_context_set_stroke_color(ctx, comma_palette_background_stroke());
+  const GeneralMagicLayout *layout = general_magic_layout_get();
+  graphics_context_set_stroke_color(ctx, general_magic_palette_background_stroke());
   for (int row = 0; row < layout->grid_rows; ++row) {
     for (int col = 0; col < layout->grid_cols; ++col) {
       prv_draw_background_cell(ctx, col, row, 0);
@@ -546,7 +546,7 @@ static void prv_background_update_proc(Layer *layer_ref, GContext *ctx) {
 
   for (int row = 0; row < layout->grid_rows; ++row) {
     for (int col = 0; col < layout->grid_cols; ++col) {
-      CommaBackgroundCellState *cell =
+      GeneralMagicBackgroundCellState *cell =
           &state->cells[prv_cell_index(col, row)];
       float progress = 0.0f;
       if (!prv_cell_progress_value(state, cell, &progress)) {
@@ -563,16 +563,16 @@ static void prv_background_update_proc(Layer *layer_ref, GContext *ctx) {
   }
 }
 
-CommaBackgroundLayer *comma_background_layer_create(GRect frame) {
+GeneralMagicBackgroundLayer *general_magic_background_layer_create(GRect frame) {
   prv_seed_random();
 
-  CommaBackgroundLayer *layer = calloc(1, sizeof(*layer));
+  GeneralMagicBackgroundLayer *layer = calloc(1, sizeof(*layer));
   if (!layer) {
     return NULL;
   }
 
   layer->layer =
-      layer_create_with_data(frame, sizeof(CommaBackgroundLayerState));
+      layer_create_with_data(frame, sizeof(GeneralMagicBackgroundLayerState));
   if (!layer->layer) {
     free(layer);
     return NULL;
@@ -586,7 +586,7 @@ CommaBackgroundLayer *comma_background_layer_create(GRect frame) {
   return layer;
 }
 
-void comma_background_layer_destroy(CommaBackgroundLayer *layer) {
+void general_magic_background_layer_destroy(GeneralMagicBackgroundLayer *layer) {
   if (!layer) {
     return;
   }
@@ -601,31 +601,31 @@ void comma_background_layer_destroy(CommaBackgroundLayer *layer) {
   free(layer);
 }
 
-Layer *comma_background_layer_get_layer(CommaBackgroundLayer *layer) {
+Layer *general_magic_background_layer_get_layer(GeneralMagicBackgroundLayer *layer) {
   return layer ? layer->layer : NULL;
 }
 
-void comma_background_layer_mark_dirty(CommaBackgroundLayer *layer) {
+void general_magic_background_layer_mark_dirty(GeneralMagicBackgroundLayer *layer) {
   if (layer && layer->layer) {
     layer_mark_dirty(layer->layer);
   }
 }
 
-bool comma_background_layer_cell_progress(CommaBackgroundLayer *layer,
+bool general_magic_background_layer_cell_progress(GeneralMagicBackgroundLayer *layer,
                                           int cell_col,
                                           int cell_row,
                                           float *progress_out) {
-  CommaBackgroundLayerState *state = prv_get_state(layer);
+  GeneralMagicBackgroundLayerState *state = prv_get_state(layer);
   if (!state || !progress_out) {
     return false;
   }
-  const CommaLayout *layout = comma_layout_get();
+  const GeneralMagicLayout *layout = general_magic_layout_get();
   if (cell_col < 0 || cell_col >= layout->grid_cols || cell_row < 0 ||
       cell_row >= layout->grid_rows) {
     *progress_out = 0.0f;
     return false;
   }
   const int idx = prv_cell_index(cell_col, cell_row);
-  const CommaBackgroundCellState *cell = &state->cells[idx];
+  const GeneralMagicBackgroundCellState *cell = &state->cells[idx];
   return prv_cell_progress_value(state, cell, progress_out);
 }

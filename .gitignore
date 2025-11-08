@@ -1,8 +1,8 @@
 .DS_Store
-Comma/.DS_Store
-Comma/.lock-waf_*
-Comma/build/
-Comma/build_log.txt
-Comma/downloads/
-Comma/.wafpickle-*
-Comma/build/*.pbw
+GeneralMagic/.DS_Store
+GeneralMagic/.lock-waf_*
+GeneralMagic/build/
+GeneralMagic/build_log.txt
+GeneralMagic/downloads/
+GeneralMagic/.wafpickle-*
+GeneralMagic/build/*.pbw

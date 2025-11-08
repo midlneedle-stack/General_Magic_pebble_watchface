@@ -1,13 +1,13 @@
 #include <pebble.h>
 
-#include "comma_background_layer.h"
-#include "comma_digit_layer.h"
-#include "comma_layout.h"
-#include "comma_palette.h"
+#include "general_magic_background_layer.h"
+#include "general_magic_digit_layer.h"
+#include "general_magic_layout.h"
+#include "general_magic_palette.h"
 
 static Window *s_main_window;
-static CommaBackgroundLayer *s_background_layer;
-static CommaDigitLayer *s_digit_layer;
+static GeneralMagicBackgroundLayer *s_background_layer;
+static GeneralMagicDigitLayer *s_digit_layer;
 
 static const uint32_t s_intro_vibe_segments[] = {
     /* single tap – light intro */
@@ -37,48 +37,48 @@ static void prv_play_intro_vibe(void) {
 
 static void prv_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   (void)units_changed;
-  comma_digit_layer_set_time(s_digit_layer, tick_time);
+  general_magic_digit_layer_set_time(s_digit_layer, tick_time);
 }
 
 static void prv_window_load(Window *window) {
   Layer *root = window_get_root_layer(window);
   const GRect bounds = layer_get_bounds(root);
 
-  comma_layout_configure(bounds.size);
-  s_background_layer = comma_background_layer_create(bounds);
+  general_magic_layout_configure(bounds.size);
+  s_background_layer = general_magic_background_layer_create(bounds);
   if (s_background_layer) {
-    layer_add_child(root, comma_background_layer_get_layer(s_background_layer));
+    layer_add_child(root, general_magic_background_layer_get_layer(s_background_layer));
   }
 
-  s_digit_layer = comma_digit_layer_create(bounds);
+  s_digit_layer = general_magic_digit_layer_create(bounds);
   if (s_digit_layer) {
-    layer_add_child(root, comma_digit_layer_get_layer(s_digit_layer));
-    comma_digit_layer_bind_background(s_digit_layer, s_background_layer);
-    comma_digit_layer_refresh_time(s_digit_layer);
+    layer_add_child(root, general_magic_digit_layer_get_layer(s_digit_layer));
+    general_magic_digit_layer_bind_background(s_digit_layer, s_background_layer);
+    general_magic_digit_layer_refresh_time(s_digit_layer);
   }
 }
 
 static void prv_window_unload(Window *window) {
   (void)window;
 
-  comma_digit_layer_destroy(s_digit_layer);
+  general_magic_digit_layer_destroy(s_digit_layer);
   s_digit_layer = NULL;
 
-  comma_background_layer_destroy(s_background_layer);
+  general_magic_background_layer_destroy(s_background_layer);
   s_background_layer = NULL;
 }
 
 static void prv_window_appear(Window *window) {
   (void)window;
   if (s_digit_layer) {
-    comma_digit_layer_start_diag_flip(s_digit_layer);
+    general_magic_digit_layer_start_diag_flip(s_digit_layer);
   }
   prv_play_intro_vibe();
 }
 
 static void prv_init(void) {
   s_main_window = window_create();
-  window_set_background_color(s_main_window, comma_palette_window_background());
+  window_set_background_color(s_main_window, general_magic_palette_window_background());
   window_set_window_handlers(s_main_window, (WindowHandlers){
                                             .load = prv_window_load,
                                             .appear = prv_window_appear,

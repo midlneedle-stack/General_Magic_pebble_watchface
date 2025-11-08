@@ -1,12 +1,12 @@
 {
-  "name": "Comma",
+  "name": "general-magic",
   "author": "Vladislav 'midlneedle' Iv ",
   "version": "1.2.0",
   "keywords": ["pebble-app"],
   "private": true,
   "dependencies": {},
   "pebble": {
-    "displayName": "Comma",
+    "displayName": "General Magic",
     "uuid": "00000000-0000-0000-0000-000000000001",
     "sdkVersion": "3",
     "enableMultiJS": true,

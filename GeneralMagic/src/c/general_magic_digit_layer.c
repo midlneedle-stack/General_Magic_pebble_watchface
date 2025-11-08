@@ -1,34 +1,34 @@
-#include "comma_digit_layer.h"
+#include "general_magic_digit_layer.h"
 
 #include <stdlib.h>
 #include <time.h>
 
-#include "comma_background_layer.h"
-#include "comma_glyphs.h"
-#include "comma_layout.h"
-#include "comma_palette.h"
+#include "general_magic_background_layer.h"
+#include "general_magic_glyphs.h"
+#include "general_magic_layout.h"
+#include "general_magic_palette.h"
 
-#define COMMA_DIGIT_TIMER_MS 16
-#define COMMA_DIGIT_COMPACT_THRESHOLD 0.15f
-#define COMMA_DIGIT_FULL_THRESHOLD 0.45f
+#define GENERAL_MAGIC_DIGIT_TIMER_MS 16
+#define GENERAL_MAGIC_DIGIT_COMPACT_THRESHOLD 0.15f
+#define GENERAL_MAGIC_DIGIT_FULL_THRESHOLD 0.45f
 
 typedef struct {
-  int16_t digits[COMMA_DIGIT_COUNT];
+  int16_t digits[GENERAL_MAGIC_DIGIT_COUNT];
   bool use_24h_time;
   AppTimer *anim_timer;
   bool reveal_complete;
-  CommaBackgroundLayer *background;
+  GeneralMagicBackgroundLayer *background;
   /* -1 = off, 0 = core, 1 = compact, 2 = full */
-  int8_t cell_level[COMMA_TOTAL_GLYPHS][COMMA_DIGIT_HEIGHT]
-                   [COMMA_DIGIT_WIDTH];
-} CommaDigitLayerState;
+  int8_t cell_level[GENERAL_MAGIC_TOTAL_GLYPHS][GENERAL_MAGIC_DIGIT_HEIGHT]
+                   [GENERAL_MAGIC_DIGIT_WIDTH];
+} GeneralMagicDigitLayerState;
 
-struct CommaDigitLayer {
+struct GeneralMagicDigitLayer {
   Layer *layer;
-  CommaDigitLayerState *state;
+  GeneralMagicDigitLayerState *state;
 };
 
-static inline CommaDigitLayerState *prv_get_state(CommaDigitLayer *layer) {
+static inline GeneralMagicDigitLayerState *prv_get_state(GeneralMagicDigitLayer *layer) {
   return layer ? layer->state : NULL;
 }
 
@@ -37,10 +37,10 @@ static inline int prv_slot_for_digit_index(int digit_index) {
 }
 
 static inline int prv_slot_width(int slot) {
-  return (slot == 2) ? COMMA_DIGIT_COLON_WIDTH : COMMA_DIGIT_WIDTH;
+  return (slot == 2) ? GENERAL_MAGIC_DIGIT_COLON_WIDTH : GENERAL_MAGIC_DIGIT_WIDTH;
 }
 
-static inline bool prv_digit_present(const CommaDigitLayerState *state,
+static inline bool prv_digit_present(const GeneralMagicDigitLayerState *state,
                                      int slot) {
   if (slot == 2) {
     return true;
@@ -49,19 +49,19 @@ static inline bool prv_digit_present(const CommaDigitLayerState *state,
   return state->digits[digit_index] >= 0;
 }
 
-static void prv_zero_cell_levels(CommaDigitLayerState *state, int slot) {
-  if (!state || slot < 0 || slot >= COMMA_TOTAL_GLYPHS) {
+static void prv_zero_cell_levels(GeneralMagicDigitLayerState *state, int slot) {
+  if (!state || slot < 0 || slot >= GENERAL_MAGIC_TOTAL_GLYPHS) {
     return;
   }
-  for (int row = 0; row < COMMA_DIGIT_HEIGHT; ++row) {
-    for (int col = 0; col < COMMA_DIGIT_WIDTH; ++col) {
+  for (int row = 0; row < GENERAL_MAGIC_DIGIT_HEIGHT; ++row) {
+    for (int col = 0; col < GENERAL_MAGIC_DIGIT_WIDTH; ++col) {
       state->cell_level[slot][row][col] = -1;
     }
   }
 }
 
-static void prv_zero_all_levels(CommaDigitLayerState *state) {
-  for (int slot = 0; slot < COMMA_TOTAL_GLYPHS; ++slot) {
+static void prv_zero_all_levels(GeneralMagicDigitLayerState *state) {
+  for (int slot = 0; slot < GENERAL_MAGIC_TOTAL_GLYPHS; ++slot) {
     prv_zero_cell_levels(state, slot);
   }
   if (state) {
@@ -70,40 +70,40 @@ static void prv_zero_all_levels(CommaDigitLayerState *state) {
 }
 
 static int prv_digit_level_from_progress(float progress) {
-  if (progress < COMMA_DIGIT_COMPACT_THRESHOLD) {
+  if (progress < GENERAL_MAGIC_DIGIT_COMPACT_THRESHOLD) {
     return 0;
   }
-  if (progress < COMMA_DIGIT_FULL_THRESHOLD) {
+  if (progress < GENERAL_MAGIC_DIGIT_FULL_THRESHOLD) {
     return 1;
   }
   return 2;
 }
 
-static int prv_glyph_for_slot(const CommaDigitLayerState *state, int slot) {
+static int prv_glyph_for_slot(const GeneralMagicDigitLayerState *state, int slot) {
   if (slot == 2) {
-    return COMMA_GLYPH_COLON;
+    return GENERAL_MAGIC_GLYPH_COLON;
   }
   const int digit_index = (slot < 2) ? slot : (slot - 1);
   return state->digits[digit_index];
 }
 
-static bool prv_update_slot_levels(CommaDigitLayerState *state, int slot,
-                                   int base_col, const CommaLayout *layout) {
+static bool prv_update_slot_levels(GeneralMagicDigitLayerState *state, int slot,
+                                   int base_col, const GeneralMagicLayout *layout) {
   if (!state || !state->background) {
     return true;
   }
 
   const int glyph_index = prv_glyph_for_slot(state, slot);
-  if (glyph_index < COMMA_GLYPH_ZERO ||
-      glyph_index > COMMA_GLYPH_COLON) {
+  if (glyph_index < GENERAL_MAGIC_GLYPH_ZERO ||
+      glyph_index > GENERAL_MAGIC_GLYPH_COLON) {
     /* no glyph to draw (blank slot) */
     prv_zero_cell_levels(state, slot);
     return true;
   }
 
-  const CommaGlyph *glyph = &COMMA_GLYPHS[glyph_index];
+  const GeneralMagicGlyph *glyph = &GENERAL_MAGIC_GLYPHS[glyph_index];
   bool slot_complete = true;
-  for (int row = 0; row < COMMA_DIGIT_HEIGHT; ++row) {
+  for (int row = 0; row < GENERAL_MAGIC_DIGIT_HEIGHT; ++row) {
     const uint8_t mask = glyph->rows[row];
     const uint8_t pin_mask = glyph->pins[row];
     if (!mask) {
@@ -120,14 +120,14 @@ static bool prv_update_slot_levels(CommaDigitLayerState *state, int slot,
 
       if (pinned) {
         float progress = 0.0f;
-        if (comma_background_layer_cell_progress(state->background, grid_col,
+        if (general_magic_background_layer_cell_progress(state->background, grid_col,
                                                  grid_row, &progress)) {
           const int target = prv_digit_level_from_progress(progress);
           state->cell_level[slot][row][col] = (target >= 0) ? 0 : -1;
         }
       } else {
         float progress = 0.0f;
-        if (comma_background_layer_cell_progress(state->background, grid_col,
+        if (general_magic_background_layer_cell_progress(state->background, grid_col,
                                                   grid_row, &progress)) {
           const int target = prv_digit_level_from_progress(progress);
           if (target > state->cell_level[slot][row][col]) {
@@ -144,15 +144,15 @@ static bool prv_update_slot_levels(CommaDigitLayerState *state, int slot,
   return slot_complete;
 }
 
-static bool prv_step_digit_levels(CommaDigitLayerState *state) {
+static bool prv_step_digit_levels(GeneralMagicDigitLayerState *state) {
   if (!state || !state->background) {
     return true;
   }
 
   bool all_complete = true;
-  const CommaLayout *layout = comma_layout_get();
+  const GeneralMagicLayout *layout = general_magic_layout_get();
   int base_col = layout->digit_start_col;
-  for (int slot = 0; slot < COMMA_TOTAL_GLYPHS; ++slot) {
+  for (int slot = 0; slot < GENERAL_MAGIC_TOTAL_GLYPHS; ++slot) {
     if (!prv_digit_present(state, slot)) {
       prv_zero_cell_levels(state, slot);
       continue;
@@ -166,10 +166,10 @@ static bool prv_step_digit_levels(CommaDigitLayerState *state) {
       case 0:
       case 1:
       case 3:
-        base_col += COMMA_DIGIT_WIDTH + COMMA_DIGIT_GAP;
+        base_col += GENERAL_MAGIC_DIGIT_WIDTH + GENERAL_MAGIC_DIGIT_GAP;
         break;
       case 2:
-        base_col += COMMA_DIGIT_COLON_WIDTH + COMMA_DIGIT_GAP;
+        base_col += GENERAL_MAGIC_DIGIT_COLON_WIDTH + GENERAL_MAGIC_DIGIT_GAP;
         break;
       default:
         break;
@@ -178,14 +178,14 @@ static bool prv_step_digit_levels(CommaDigitLayerState *state) {
   return all_complete;
 }
 
-static void prv_schedule_anim_timer(CommaDigitLayer *layer);
+static void prv_schedule_anim_timer(GeneralMagicDigitLayer *layer);
 
 static void prv_anim_timer_cb(void *ctx) {
-  CommaDigitLayer *layer = ctx;
+  GeneralMagicDigitLayer *layer = ctx;
   if (!layer || !layer->layer) {
     return;
   }
-  CommaDigitLayerState *state = layer_get_data(layer->layer);
+  GeneralMagicDigitLayerState *state = layer_get_data(layer->layer);
   if (!state) {
     return;
   }
@@ -200,11 +200,11 @@ static void prv_anim_timer_cb(void *ctx) {
   }
 }
 
-static void prv_schedule_anim_timer(CommaDigitLayer *layer) {
+static void prv_schedule_anim_timer(GeneralMagicDigitLayer *layer) {
   if (!layer || !layer->layer) {
     return;
   }
-  CommaDigitLayerState *state = layer_get_data(layer->layer);
+  GeneralMagicDigitLayerState *state = layer_get_data(layer->layer);
   if (!state || state->reveal_complete) {
     return;
   }
@@ -212,10 +212,10 @@ static void prv_schedule_anim_timer(CommaDigitLayer *layer) {
     app_timer_cancel(state->anim_timer);
   }
   state->anim_timer =
-      app_timer_register(COMMA_DIGIT_TIMER_MS, prv_anim_timer_cb, layer);
+      app_timer_register(GENERAL_MAGIC_DIGIT_TIMER_MS, prv_anim_timer_cb, layer);
 }
 
-#if COMMA_CELL_SIZE != 6
+#if GENERAL_MAGIC_CELL_SIZE != 6
 static void prv_fill_block(GContext *ctx, const GPoint origin,
                            int row_start, int row_end,
                            int col_start, int col_end) {
@@ -228,11 +228,11 @@ static void prv_fill_block(GContext *ctx, const GPoint origin,
   if (col_start < 0) {
     col_start = 0;
   }
-  if (row_end >= COMMA_CELL_SIZE) {
-    row_end = COMMA_CELL_SIZE - 1;
+  if (row_end >= GENERAL_MAGIC_CELL_SIZE) {
+    row_end = GENERAL_MAGIC_CELL_SIZE - 1;
   }
-  if (col_end >= COMMA_CELL_SIZE) {
-    col_end = COMMA_CELL_SIZE - 1;
+  if (col_end >= GENERAL_MAGIC_CELL_SIZE) {
+    col_end = GENERAL_MAGIC_CELL_SIZE - 1;
   }
   for (int row = row_start; row <= row_end; ++row) {
     for (int col = col_start; col <= col_end; ++col) {
@@ -242,7 +242,7 @@ static void prv_fill_block(GContext *ctx, const GPoint origin,
 }
 #endif
 
-#if COMMA_CELL_SIZE == 6
+#if GENERAL_MAGIC_CELL_SIZE == 6
 static void prv_draw_row_span(GContext *ctx, const GPoint origin, int row,
                               int col_start, int col_end) {
   for (int col = col_start; col <= col_end; ++col) {
@@ -254,7 +254,7 @@ static void prv_draw_row_span(GContext *ctx, const GPoint origin, int row,
 static void prv_draw_digit_shape(GContext *ctx, const GRect frame,
                                  int size_level) {
   const GPoint origin = frame.origin;
-#if COMMA_CELL_SIZE == 6
+#if GENERAL_MAGIC_CELL_SIZE == 6
   switch (size_level) {
     case 0:
       for (int row = 2; row <= 3; ++row) {
@@ -277,7 +277,7 @@ static void prv_draw_digit_shape(GContext *ctx, const GRect frame,
       break;
   }
 #else
-  const int size = COMMA_CELL_SIZE;
+  const int size = GENERAL_MAGIC_CELL_SIZE;
   const int outer = 1;
   const int inner = (size >= 8) ? 2 : 1;
   const int legacy_core = (size >= 8) ? 3 : 2;
@@ -314,18 +314,18 @@ static void prv_draw_digit_cell(GContext *ctx, int cell_col, int cell_row,
   if (size_level < 0) {
     return;
   }
-  const GRect frame = comma_cell_frame(cell_col, cell_row);
+  const GRect frame = general_magic_cell_frame(cell_col, cell_row);
   prv_draw_digit_shape(ctx, frame, size_level);
 }
 
-static void prv_draw_glyph(GContext *ctx, const CommaGlyph *glyph, int cell_col,
+static void prv_draw_glyph(GContext *ctx, const GeneralMagicGlyph *glyph, int cell_col,
                            int cell_row, GColor base_stroke,
-                           const uint8_t (*levels)[COMMA_DIGIT_WIDTH]) {
+                           const uint8_t (*levels)[GENERAL_MAGIC_DIGIT_WIDTH]) {
   if (!glyph) {
     return;
   }
   graphics_context_set_stroke_color(ctx, base_stroke);
-  for (int row = 0; row < COMMA_DIGIT_HEIGHT; ++row) {
+  for (int row = 0; row < GENERAL_MAGIC_DIGIT_HEIGHT; ++row) {
     const uint8_t mask = glyph->rows[row];
     if (!mask) {
       continue;
@@ -340,7 +340,7 @@ static void prv_draw_glyph(GContext *ctx, const CommaGlyph *glyph, int cell_col,
 }
 
 static void prv_digit_layer_update_proc(Layer *layer, GContext *ctx) {
-  CommaDigitLayerState *state = layer_get_data(layer);
+  GeneralMagicDigitLayerState *state = layer_get_data(layer);
   if (!state) {
     return;
   }
@@ -355,23 +355,23 @@ static void prv_digit_layer_update_proc(Layer *layer, GContext *ctx) {
     }
   }
 
-  graphics_context_set_fill_color(ctx, comma_palette_digit_fill());
-  const GColor base_stroke = comma_palette_digit_stroke();
+  graphics_context_set_fill_color(ctx, general_magic_palette_digit_fill());
+  const GColor base_stroke = general_magic_palette_digit_stroke();
 
-  const CommaLayout *layout = comma_layout_get();
+  const GeneralMagicLayout *layout = general_magic_layout_get();
   int cell_col = layout->digit_start_col;
   const int cell_row = layout->digit_start_row;
 
-  for (int slot = 0; slot < COMMA_TOTAL_GLYPHS; ++slot) {
+  for (int slot = 0; slot < GENERAL_MAGIC_TOTAL_GLYPHS; ++slot) {
     if (!prv_digit_present(state, slot)) {
       switch (slot) {
         case 0:
         case 1:
         case 3:
-          cell_col += COMMA_DIGIT_WIDTH + COMMA_DIGIT_GAP;
+          cell_col += GENERAL_MAGIC_DIGIT_WIDTH + GENERAL_MAGIC_DIGIT_GAP;
           break;
         case 2:
-          cell_col += COMMA_DIGIT_COLON_WIDTH + COMMA_DIGIT_GAP;
+          cell_col += GENERAL_MAGIC_DIGIT_COLON_WIDTH + GENERAL_MAGIC_DIGIT_GAP;
           break;
         default:
           break;
@@ -380,18 +380,18 @@ static void prv_digit_layer_update_proc(Layer *layer, GContext *ctx) {
     }
 
     const int glyph_index = prv_glyph_for_slot(state, slot);
-    const CommaGlyph *glyph = &COMMA_GLYPHS[glyph_index];
+    const GeneralMagicGlyph *glyph = &GENERAL_MAGIC_GLYPHS[glyph_index];
     prv_draw_glyph(ctx, glyph, cell_col, cell_row, base_stroke,
-                   (const uint8_t (*)[COMMA_DIGIT_WIDTH])state->cell_level[slot]);
+                   (const uint8_t (*)[GENERAL_MAGIC_DIGIT_WIDTH])state->cell_level[slot]);
 
     switch (slot) {
       case 0:
       case 1:
       case 3:
-        cell_col += COMMA_DIGIT_WIDTH + COMMA_DIGIT_GAP;
+        cell_col += GENERAL_MAGIC_DIGIT_WIDTH + GENERAL_MAGIC_DIGIT_GAP;
         break;
       case 2:
-        cell_col += COMMA_DIGIT_COLON_WIDTH + COMMA_DIGIT_GAP;
+        cell_col += GENERAL_MAGIC_DIGIT_COLON_WIDTH + GENERAL_MAGIC_DIGIT_GAP;
         break;
       default:
         break;
@@ -399,11 +399,11 @@ static void prv_digit_layer_update_proc(Layer *layer, GContext *ctx) {
   }
 }
 
-static void prv_start_animation(CommaDigitLayer *layer) {
+static void prv_start_animation(GeneralMagicDigitLayer *layer) {
   if (!layer || !layer->layer) {
     return;
   }
-  CommaDigitLayerState *state = layer_get_data(layer->layer);
+  GeneralMagicDigitLayerState *state = layer_get_data(layer->layer);
   if (!state) {
     return;
   }
@@ -415,13 +415,13 @@ static void prv_start_animation(CommaDigitLayer *layer) {
   prv_schedule_anim_timer(layer);
 }
 
-CommaDigitLayer *comma_digit_layer_create(GRect frame) {
-  CommaDigitLayer *layer = calloc(1, sizeof(*layer));
+GeneralMagicDigitLayer *general_magic_digit_layer_create(GRect frame) {
+  GeneralMagicDigitLayer *layer = calloc(1, sizeof(*layer));
   if (!layer) {
     return NULL;
   }
 
-  layer->layer = layer_create_with_data(frame, sizeof(CommaDigitLayerState));
+  layer->layer = layer_create_with_data(frame, sizeof(GeneralMagicDigitLayerState));
   if (!layer->layer) {
     free(layer);
     return NULL;
@@ -432,7 +432,7 @@ CommaDigitLayer *comma_digit_layer_create(GRect frame) {
   layer->state->anim_timer = NULL;
   layer->state->reveal_complete = false;
   layer->state->background = NULL;
-  for (int i = 0; i < COMMA_DIGIT_COUNT; ++i) {
+  for (int i = 0; i < GENERAL_MAGIC_DIGIT_COUNT; ++i) {
     layer->state->digits[i] = -1;
   }
   prv_zero_all_levels(layer->state);
@@ -441,7 +441,7 @@ CommaDigitLayer *comma_digit_layer_create(GRect frame) {
   return layer;
 }
 
-void comma_digit_layer_destroy(CommaDigitLayer *layer) {
+void general_magic_digit_layer_destroy(GeneralMagicDigitLayer *layer) {
   if (!layer) {
     return;
   }
@@ -455,13 +455,13 @@ void comma_digit_layer_destroy(CommaDigitLayer *layer) {
   free(layer);
 }
 
-Layer *comma_digit_layer_get_layer(CommaDigitLayer *layer) {
+Layer *general_magic_digit_layer_get_layer(GeneralMagicDigitLayer *layer) {
   return layer ? layer->layer : NULL;
 }
 
-void comma_digit_layer_bind_background(CommaDigitLayer *layer,
-                                        CommaBackgroundLayer *background) {
-  CommaDigitLayerState *state = prv_get_state(layer);
+void general_magic_digit_layer_bind_background(GeneralMagicDigitLayer *layer,
+                                        GeneralMagicBackgroundLayer *background) {
+  GeneralMagicDigitLayerState *state = prv_get_state(layer);
   if (!state) {
     return;
   }
@@ -472,9 +472,9 @@ void comma_digit_layer_bind_background(CommaDigitLayer *layer,
   }
 }
 
-void comma_digit_layer_set_time(CommaDigitLayer *layer,
+void general_magic_digit_layer_set_time(GeneralMagicDigitLayer *layer,
                                  const struct tm *time_info) {
-  CommaDigitLayerState *state = prv_get_state(layer);
+  GeneralMagicDigitLayerState *state = prv_get_state(layer);
   if (!state || !time_info) {
     return;
   }
@@ -488,7 +488,7 @@ void comma_digit_layer_set_time(CommaDigitLayer *layer,
     }
   }
 
-  int16_t new_digits[COMMA_DIGIT_COUNT] = {
+  int16_t new_digits[GENERAL_MAGIC_DIGIT_COUNT] = {
       hour / 10,
       hour % 10,
       time_info->tm_min / 10,
@@ -500,7 +500,7 @@ void comma_digit_layer_set_time(CommaDigitLayer *layer,
   }
 
   bool changed = (state->use_24h_time != use_24h);
-  for (int i = 0; i < COMMA_DIGIT_COUNT; ++i) {
+  for (int i = 0; i < GENERAL_MAGIC_DIGIT_COUNT; ++i) {
     if (state->digits[i] != new_digits[i]) {
       state->digits[i] = new_digits[i];
       changed = true;
@@ -518,22 +518,22 @@ void comma_digit_layer_set_time(CommaDigitLayer *layer,
   }
 }
 
-void comma_digit_layer_refresh_time(CommaDigitLayer *layer) {
+void general_magic_digit_layer_refresh_time(GeneralMagicDigitLayer *layer) {
   time_t now = time(NULL);
   struct tm *time_info = localtime(&now);
   if (!time_info) {
     return;
   }
-  comma_digit_layer_set_time(layer, time_info);
+  general_magic_digit_layer_set_time(layer, time_info);
 }
 
-void comma_digit_layer_force_redraw(CommaDigitLayer *layer) {
+void general_magic_digit_layer_force_redraw(GeneralMagicDigitLayer *layer) {
   if (layer && layer->layer) {
     layer_mark_dirty(layer->layer);
   }
 }
 
-void comma_digit_layer_start_diag_flip(CommaDigitLayer *layer) {
+void general_magic_digit_layer_start_diag_flip(GeneralMagicDigitLayer *layer) {
   prv_start_animation(layer);
-  comma_digit_layer_force_redraw(layer);
+  general_magic_digit_layer_force_redraw(layer);
 }

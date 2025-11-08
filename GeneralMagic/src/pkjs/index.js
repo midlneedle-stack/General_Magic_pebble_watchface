@@ -1,5 +1,5 @@
 (() => {
-  const TAG = 'comma-js';
+  const TAG = 'general_magic-js';
 
   Pebble.addEventListener('ready', () => {
     console.log(`${TAG}: ready`);
