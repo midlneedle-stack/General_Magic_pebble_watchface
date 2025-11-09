@@ -118,6 +118,12 @@
         color: #ffffff;
         border-color: #2b2b2b;
       }
+      .vibe-options {
+        margin-top: 12px;
+      }
+      .vibe-options.is-hidden {
+        display: none;
+      }
       .actions {
         margin-top: 24px;
       }
@@ -173,23 +179,25 @@
             <button type="button" data-value="false">Off</button>
           </div>
         </div>
+        <div class="vibe-options" id="vibe-options">
+          <div class="field">
+            <div class="field-label">Vibrate On Open</div>
+            <div class="segmented" data-field="vibrateOnOpen" data-type="bool">
+              <button type="button" data-value="true">On</button>
+              <button type="button" data-value="false">Off</button>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">Hourly Chime</div>
+            <div class="segmented" data-field="hourlyChime" data-type="bool">
+              <button type="button" data-value="true">On</button>
+              <button type="button" data-value="false">Off</button>
+            </div>
+          </div>
+        </div>
         <div class="field">
           <div class="field-label">Animation</div>
           <div class="segmented" data-field="animation" data-type="bool">
-            <button type="button" data-value="true">On</button>
-            <button type="button" data-value="false">Off</button>
-          </div>
-        </div>
-        <div class="field">
-          <div class="field-label">Vibrate On Open</div>
-          <div class="segmented" data-field="vibrateOnOpen" data-type="bool">
-            <button type="button" data-value="true">On</button>
-            <button type="button" data-value="false">Off</button>
-          </div>
-        </div>
-        <div class="field">
-          <div class="field-label">Hourly Chime</div>
-          <div class="segmented" data-field="hourlyChime" data-type="bool">
             <button type="button" data-value="true">On</button>
             <button type="button" data-value="false">Off</button>
           </div>
@@ -259,6 +267,7 @@
       var form = document.getElementById('config-form');
       var watchFace = document.getElementById('watch-face');
       var watchTime = document.getElementById('watch-time');
+      var vibeOptions = document.getElementById('vibe-options');
 
       function pad(num) {
         return (num < 10 ? '0' : '') + num;
@@ -298,6 +307,18 @@
           }
         }
         updatePreview();
+        updateVibrationVisibility();
+      }
+
+      function updateVibrationVisibility() {
+        if (!vibeOptions) {
+          return;
+        }
+        if (state.vibration) {
+          vibeOptions.classList.remove('is-hidden');
+        } else {
+          vibeOptions.classList.add('is-hidden');
+        }
       }
 
       var segmentedGroups = document.querySelectorAll('.segmented');
