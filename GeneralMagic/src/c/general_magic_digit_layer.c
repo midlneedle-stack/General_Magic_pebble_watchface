@@ -153,14 +153,15 @@ static bool prv_step_digit_levels(GeneralMagicDigitLayerState *state) {
   const GeneralMagicLayout *layout = general_magic_layout_get();
   int base_col = layout->digit_start_col;
   for (int slot = 0; slot < GENERAL_MAGIC_TOTAL_GLYPHS; ++slot) {
-    if (!prv_digit_present(state, slot)) {
+    const bool digit_present = prv_digit_present(state, slot);
+    if (digit_present) {
+      const bool slot_done =
+          prv_update_slot_levels(state, slot, base_col, layout);
+      if (!slot_done) {
+        all_complete = false;
+      }
+    } else {
       prv_zero_cell_levels(state, slot);
-      continue;
-    }
-    const bool slot_done =
-        prv_update_slot_levels(state, slot, base_col, layout);
-    if (!slot_done) {
-      all_complete = false;
     }
     switch (slot) {
       case 0:
@@ -213,6 +214,21 @@ static void prv_schedule_anim_timer(GeneralMagicDigitLayer *layer) {
   }
   state->anim_timer =
       app_timer_register(GENERAL_MAGIC_DIGIT_TIMER_MS, prv_anim_timer_cb, layer);
+}
+
+static void prv_stop_animation(GeneralMagicDigitLayer *layer) {
+  if (!layer || !layer->layer) {
+    return;
+  }
+  GeneralMagicDigitLayerState *state = layer_get_data(layer->layer);
+  if (!state) {
+    return;
+  }
+  if (state->anim_timer) {
+    app_timer_cancel(state->anim_timer);
+    state->anim_timer = NULL;
+  }
+  state->reveal_complete = true;
 }
 
 #if GENERAL_MAGIC_CELL_SIZE != 6
@@ -549,4 +565,8 @@ void general_magic_digit_layer_force_redraw(GeneralMagicDigitLayer *layer) {
 void general_magic_digit_layer_start_diag_flip(GeneralMagicDigitLayer *layer) {
   prv_start_animation(layer);
   general_magic_digit_layer_force_redraw(layer);
+}
+
+void general_magic_digit_layer_stop_animation(GeneralMagicDigitLayer *layer) {
+  prv_stop_animation(layer);
 }

@@ -121,6 +121,7 @@ static void prv_apply_animation_state(void) {
   if (s_settings.animations_enabled) {
     general_magic_digit_layer_start_diag_flip(s_digit_layer);
   } else {
+    general_magic_digit_layer_stop_animation(s_digit_layer);
     general_magic_digit_layer_force_redraw(s_digit_layer);
   }
 }
@@ -271,6 +272,7 @@ static void prv_window_appear(Window *window) {
   if (s_digit_layer && s_settings.animations_enabled) {
     general_magic_digit_layer_start_diag_flip(s_digit_layer);
   } else if (s_digit_layer) {
+    general_magic_digit_layer_stop_animation(s_digit_layer);
     general_magic_digit_layer_force_redraw(s_digit_layer);
   }
   prv_play_intro_vibe();

@@ -16,3 +16,4 @@ void general_magic_digit_layer_force_redraw(GeneralMagicDigitLayer *layer);
 void general_magic_digit_layer_set_use_24h(GeneralMagicDigitLayer *layer, bool use_24h);
 /** Trigger the artifact-style reveal animation for the digits. */
 void general_magic_digit_layer_start_diag_flip(GeneralMagicDigitLayer *layer);
+void general_magic_digit_layer_stop_animation(GeneralMagicDigitLayer *layer);
