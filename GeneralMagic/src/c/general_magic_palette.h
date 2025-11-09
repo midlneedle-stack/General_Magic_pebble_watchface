@@ -15,3 +15,4 @@ GColor general_magic_palette_background_stroke(void);
 GColor general_magic_palette_digit_fill(void);
 GColor general_magic_palette_digit_stroke(void);
 GColor general_magic_palette_window_background(void);
+GColor general_magic_palette_stage_color(int stage, bool is_digit);

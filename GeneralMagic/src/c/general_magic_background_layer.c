@@ -362,22 +362,6 @@ static int prv_shape_level_for_progress(float progress) {
   return -1;
 }
 
-static GColor prv_color_from_stage(int stage) {
-#if defined(PBL_COLOR)
-  switch (stage) {
-    case 0:
-      return GColorFromRGB(0x55, 0x55, 0x55);
-    case 1:
-      return GColorFromRGB(0xAA, 0xAA, 0xAA);
-    default:
-      return GColorFromRGB(0xFF, 0xFF, 0xFF);
-  }
-#else
-  (void)stage;
-  return GColorWhite;
-#endif
-}
-
 static GColor prv_color_for_progress(float progress, bool is_digit) {
   if (progress < 0.0f) {
     progress = 0.0f;
@@ -386,29 +370,29 @@ static GColor prv_color_for_progress(float progress, bool is_digit) {
   }
   if (is_digit) {
     if (progress < (1.0f / 3.0f)) {
-      return prv_color_from_stage(0);
+      return general_magic_palette_stage_color(0, true);
     } else if (progress < (2.0f / 3.0f)) {
-      return prv_color_from_stage(1);
+      return general_magic_palette_stage_color(1, true);
     }
-    return prv_color_from_stage(2);
+    return general_magic_palette_stage_color(2, true);
   }
 
   if (progress < 0.5f) {
     const float phase = progress / 0.5f;
     if (phase < (1.0f / 3.0f)) {
-      return prv_color_from_stage(0);
+      return general_magic_palette_stage_color(0, false);
     } else if (phase < (2.0f / 3.0f)) {
-      return prv_color_from_stage(1);
+      return general_magic_palette_stage_color(1, false);
     }
-    return prv_color_from_stage(2);
+    return general_magic_palette_stage_color(2, false);
   }
   const float phase = (progress - 0.5f) / 0.5f;
   if (phase < (1.0f / 3.0f)) {
-    return prv_color_from_stage(2);
+    return general_magic_palette_stage_color(2, false);
   } else if (phase < (2.0f / 3.0f)) {
-    return prv_color_from_stage(1);
+    return general_magic_palette_stage_color(1, false);
   }
-  return prv_color_from_stage(0);
+  return general_magic_palette_stage_color(0, false);
 }
 
 static bool prv_step_animation(GeneralMagicBackgroundLayer *layer) {
