@@ -1,3 +1,4 @@
+#include <math.h>
 #include <pebble.h>
 #include <time.h>
 
@@ -26,7 +27,9 @@ enum {
   GENERAL_MAGIC_SETTINGS_PERSIST_KEY = 1,
 };
 
-static const uint32_t s_intro_vibe_segments[] = {
+static AppTimer *s_intro_vibe_timer;
+
+static const uint32_t s_intro_vibe_segments_base[] = {
     /* short warm-up pulses */
     18, 220,
     20, 180,
@@ -45,24 +48,76 @@ static const uint32_t s_intro_vibe_segments[] = {
     20, 360,
 };
 
+static uint32_t s_intro_vibe_segments_scaled[ARRAY_LENGTH(s_intro_vibe_segments_base)];
+
 static const uint32_t s_hourly_chime_segments[] = {
-    32, 70, 24, 110, 18, 200,
+    /* Apple-ish spaced double tap: crisp start + delayed accent */
+    30, 150, 42, 360,
 };
 
 static bool prv_vibes_allowed(void) {
   return s_settings.vibration_enabled && !quiet_time_is_active();
 }
 
-static void prv_play_intro_vibe(void) {
+static void prv_cancel_intro_vibe_timer(void) {
+  if (s_intro_vibe_timer) {
+    app_timer_cancel(s_intro_vibe_timer);
+    s_intro_vibe_timer = NULL;
+  }
+}
+
+static void prv_prepare_intro_vibe_pattern(float scale) {
+  if (scale < 0.3f) {
+    scale = 0.3f;
+  }
+  for (size_t i = 0; i < ARRAY_LENGTH(s_intro_vibe_segments_base); ++i) {
+    float scaled = (float)s_intro_vibe_segments_base[i] * scale;
+    if (scaled < 1.0f) {
+      scaled = 1.0f;
+    }
+    s_intro_vibe_segments_scaled[i] = (uint32_t)roundf(scaled);
+  }
+}
+
+static void prv_intro_vibe_fire(void *context) {
+  (void)context;
+  s_intro_vibe_timer = NULL;
   if (!s_settings.vibrate_on_open || !prv_vibes_allowed()) {
     return;
   }
   const VibePattern pattern = {
-      .durations = s_intro_vibe_segments,
-      .num_segments = ARRAY_LENGTH(s_intro_vibe_segments),
+      .durations = s_intro_vibe_segments_scaled,
+      .num_segments = ARRAY_LENGTH(s_intro_vibe_segments_scaled),
   };
   vibes_cancel();
   vibes_enqueue_custom_pattern(pattern);
+}
+
+static void prv_play_intro_vibe(void) {
+  if (!s_settings.vibrate_on_open || !prv_vibes_allowed()) {
+    return;
+  }
+  prv_cancel_intro_vibe_timer();
+  GeneralMagicBackgroundTiming timing = {
+      .intro_delay_ms = GENERAL_MAGIC_BG_BASE_INTRO_DELAY_MS,
+      .cell_anim_ms = GENERAL_MAGIC_BG_BASE_CELL_ANIM_MS,
+      .activation_duration_ms = GENERAL_MAGIC_BG_BASE_ACTIVATION_DURATION_MS,
+  };
+  if (!general_magic_background_layer_get_timing(s_background_layer, &timing)) {
+    timing.intro_delay_ms = GENERAL_MAGIC_BG_BASE_INTRO_DELAY_MS;
+    timing.cell_anim_ms = GENERAL_MAGIC_BG_BASE_CELL_ANIM_MS;
+  }
+  float scale = 1.0f;
+  if (timing.cell_anim_ms > 0) {
+    scale = (float)timing.cell_anim_ms / (float)GENERAL_MAGIC_BG_BASE_CELL_ANIM_MS;
+  }
+  prv_prepare_intro_vibe_pattern(scale);
+  const uint32_t delay_ms = (timing.intro_delay_ms > 0) ? (uint32_t)timing.intro_delay_ms : 0;
+  if (delay_ms == 0) {
+    prv_intro_vibe_fire(NULL);
+  } else {
+    s_intro_vibe_timer = app_timer_register(delay_ms, prv_intro_vibe_fire, NULL);
+  }
 }
 
 static void prv_play_hourly_chime(void) {
@@ -308,6 +363,8 @@ static void prv_window_load(Window *window) {
 
 static void prv_window_unload(Window *window) {
   (void)window;
+
+  prv_cancel_intro_vibe_timer();
 
   general_magic_digit_layer_destroy(s_digit_layer);
   s_digit_layer = NULL;

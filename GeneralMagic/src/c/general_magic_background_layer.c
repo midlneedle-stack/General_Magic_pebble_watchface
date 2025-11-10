@@ -9,15 +9,6 @@
 #include "general_magic_layout.h"
 #include "general_magic_palette.h"
 
-#define GENERAL_MAGIC_BG_FRAME_MS 16 /* target ~60fps */
-#define GENERAL_MAGIC_BG_CELL_ANIM_MS 1300
-#define GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS 0
-#define GENERAL_MAGIC_BG_CELL_STAGGER_MAX_MS 420
-#define GENERAL_MAGIC_BG_ACTIVATION_DURATION_MS 520
-#define GENERAL_MAGIC_BG_ACTIVE_PERCENT 18
-#define GENERAL_MAGIC_BG_ACTIVE_DIGIT_PERCENT 100
-#define GENERAL_MAGIC_BG_INTRO_DELAY_MS 120
-
 typedef struct {
   int32_t elapsed_ms;
   int32_t start_delay_ms;
@@ -34,6 +25,13 @@ typedef struct {
   int32_t activation_window_ms;
   float activation_ratio;
   bool animation_enabled;
+  struct {
+    int32_t cell_anim_ms;
+    int32_t cell_stagger_min_ms;
+    int32_t cell_stagger_max_ms;
+    int32_t activation_duration_ms;
+    int32_t intro_delay_ms;
+  } timing;
 } GeneralMagicBackgroundLayerState;
 
 struct GeneralMagicBackgroundLayer {
@@ -75,6 +73,51 @@ static int32_t prv_random_range(int32_t min_inclusive, int32_t max_inclusive) {
   }
   const int32_t span = max_inclusive - min_inclusive + 1;
   return min_inclusive + (rand() % span);
+}
+
+static float prv_animation_scale(const GeneralMagicLayout *layout) {
+  if (!layout) {
+    return 1.0f;
+  }
+  const float reference_cells =
+      (float)(GENERAL_MAGIC_REFERENCE_COLS * GENERAL_MAGIC_REFERENCE_ROWS);
+  const float current_cells = (float)(layout->grid_cols * layout->grid_rows);
+  if (current_cells <= 0 || reference_cells <= 0) {
+    return 1.0f;
+  }
+  return reference_cells / current_cells;
+}
+
+static int32_t prv_scaled_duration(float scale, int32_t base) {
+  if (base == 0) {
+    return 0;
+  }
+  const float scaled = (float)base * scale;
+  if (scaled < 1.0f) {
+    return 1;
+  }
+  return (int32_t)roundf(scaled);
+}
+
+static void prv_configure_timing(GeneralMagicBackgroundLayerState *state,
+                                 const GeneralMagicLayout *layout) {
+  if (!state || !layout) {
+    return;
+  }
+  const float scale = prv_animation_scale(layout);
+  state->timing.cell_anim_ms =
+      prv_scaled_duration(scale, GENERAL_MAGIC_BG_BASE_CELL_ANIM_MS);
+  state->timing.cell_stagger_min_ms =
+      prv_scaled_duration(scale, GENERAL_MAGIC_BG_BASE_CELL_STAGGER_MIN_MS);
+  state->timing.cell_stagger_max_ms =
+      prv_scaled_duration(scale, GENERAL_MAGIC_BG_BASE_CELL_STAGGER_MAX_MS);
+  state->timing.activation_duration_ms =
+      prv_scaled_duration(scale, GENERAL_MAGIC_BG_BASE_ACTIVATION_DURATION_MS);
+  state->timing.intro_delay_ms =
+      prv_scaled_duration(scale, GENERAL_MAGIC_BG_BASE_INTRO_DELAY_MS);
+  if (state->timing.cell_stagger_max_ms < state->timing.cell_stagger_min_ms) {
+    state->timing.cell_stagger_max_ms = state->timing.cell_stagger_min_ms;
+  }
 }
 
 static float prv_digit_center_col(const GeneralMagicLayout *layout) {
@@ -149,7 +192,8 @@ static bool prv_cell_is_digit(int cell_col, int cell_row,
   return false;
 }
 
-static void prv_reset_cell(GeneralMagicBackgroundCellState *cell) {
+static void prv_reset_cell(GeneralMagicBackgroundLayerState *state,
+                           GeneralMagicBackgroundCellState *cell) {
   if (!cell) {
     return;
   }
@@ -162,7 +206,7 @@ static void prv_reset_cell(GeneralMagicBackgroundCellState *cell) {
   cell->elapsed_ms = 0;
   cell->complete = false;
   cell->start_delay_ms =
-      prv_random_range(GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS, GENERAL_MAGIC_BG_CELL_STAGGER_MAX_MS);
+      prv_random_range(state->timing.cell_stagger_min_ms, state->timing.cell_stagger_max_ms);
 }
 
 static void prv_init_cells(GeneralMagicBackgroundLayerState *state) {
@@ -170,13 +214,14 @@ static void prv_init_cells(GeneralMagicBackgroundLayerState *state) {
     return;
   }
   const GeneralMagicLayout *layout = general_magic_layout_get();
+  prv_configure_timing(state, layout);
   const int grid_cols = layout->grid_cols;
   const int grid_rows = layout->grid_rows;
   memset(state->cells, 0, sizeof(state->cells));
   state->animation_complete = false;
   state->intro_complete = false;
   state->intro_elapsed_ms = 0;
-  state->activation_window_ms = GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS;
+  state->activation_window_ms = state->timing.cell_stagger_min_ms;
   state->activation_ratio = 0.0f;
   state->animation_enabled = true;
   for (int row = 0; row < grid_rows; ++row) {
@@ -195,7 +240,7 @@ static void prv_init_cells(GeneralMagicBackgroundLayerState *state) {
         }
         cell->active = (rand() % 100) < percent;
       }
-      prv_reset_cell(cell);
+      prv_reset_cell(state, cell);
     }
   }
 }
@@ -332,7 +377,7 @@ static bool prv_cell_progress_value(const GeneralMagicBackgroundLayerState *stat
   if (local < 0) {
     local = 0;
   }
-  const int32_t total = GENERAL_MAGIC_BG_CELL_ANIM_MS;
+  const int32_t total = state->timing.cell_anim_ms;
   if (local > total) {
     local = total;
   }
@@ -402,26 +447,25 @@ static bool prv_step_animation(GeneralMagicBackgroundLayer *layer) {
 
   if (!state->intro_complete) {
     state->intro_elapsed_ms += GENERAL_MAGIC_BG_FRAME_MS;
-    if (state->intro_elapsed_ms >= GENERAL_MAGIC_BG_INTRO_DELAY_MS) {
+    if (state->intro_elapsed_ms >= state->timing.intro_delay_ms) {
       state->intro_complete = true;
-      state->activation_window_ms = GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS;
+      state->activation_window_ms = state->timing.cell_stagger_min_ms;
     }
     return false;
   }
 
-  if (state->activation_ratio < 1.0f &&
-      GENERAL_MAGIC_BG_ACTIVATION_DURATION_MS > 0) {
+  if (state->activation_ratio < 1.0f && state->timing.activation_duration_ms > 0) {
     state->activation_ratio +=
-        (float)GENERAL_MAGIC_BG_FRAME_MS / (float)GENERAL_MAGIC_BG_ACTIVATION_DURATION_MS;
+        (float)GENERAL_MAGIC_BG_FRAME_MS / (float)state->timing.activation_duration_ms;
     if (state->activation_ratio > 1.0f) {
       state->activation_ratio = 1.0f;
     }
     const float eased =
         prv_ease(state->activation_ratio);
     const int span =
-        GENERAL_MAGIC_BG_CELL_STAGGER_MAX_MS - GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS;
+        state->timing.cell_stagger_max_ms - state->timing.cell_stagger_min_ms;
     state->activation_window_ms =
-        GENERAL_MAGIC_BG_CELL_STAGGER_MIN_MS + (int)((float)span * eased);
+        state->timing.cell_stagger_min_ms + (int)((float)span * eased);
   }
 
   const GeneralMagicLayout *layout = general_magic_layout_get();
@@ -437,8 +481,7 @@ static bool prv_step_animation(GeneralMagicBackgroundLayer *layer) {
       all_complete = false;
       continue;
     }
-    const int32_t max_elapsed =
-        cell->start_delay_ms + GENERAL_MAGIC_BG_CELL_ANIM_MS;
+    const int32_t max_elapsed = cell->start_delay_ms + state->timing.cell_anim_ms;
     if (cell->complete && cell->elapsed_ms >= max_elapsed) {
       continue;
     }
@@ -618,6 +661,20 @@ bool general_magic_background_layer_cell_progress(GeneralMagicBackgroundLayer *l
   return prv_cell_progress_value(state, cell, progress_out);
 }
 
+bool general_magic_background_layer_get_timing(GeneralMagicBackgroundLayer *layer,
+                                               GeneralMagicBackgroundTiming *timing_out) {
+  GeneralMagicBackgroundLayerState *state = prv_get_state(layer);
+  if (!state || !timing_out) {
+    return false;
+  }
+  *timing_out = (GeneralMagicBackgroundTiming){
+      .intro_delay_ms = state->timing.intro_delay_ms,
+      .cell_anim_ms = state->timing.cell_anim_ms,
+      .activation_duration_ms = state->timing.activation_duration_ms,
+  };
+  return true;
+}
+
 void general_magic_background_layer_set_animated(GeneralMagicBackgroundLayer *layer,
                                                  bool animated) {
   if (!layer) {
@@ -642,7 +699,7 @@ void general_magic_background_layer_set_animated(GeneralMagicBackgroundLayer *la
       if (!cell->active) {
         continue;
       }
-      cell->elapsed_ms = cell->start_delay_ms + GENERAL_MAGIC_BG_CELL_ANIM_MS;
+      cell->elapsed_ms = cell->start_delay_ms + state->timing.cell_anim_ms;
       cell->complete = true;
     }
   }
