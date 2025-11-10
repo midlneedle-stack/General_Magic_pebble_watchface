@@ -144,6 +144,17 @@ static void prv_apply_time_format(void) {
   }
 }
 
+static void prv_prepare_animation_layers(void) {
+  if (s_background_layer) {
+    general_magic_background_layer_set_animated(s_background_layer, false);
+  }
+  if (s_digit_layer) {
+    general_magic_digit_layer_set_static_display(s_digit_layer, true);
+    general_magic_digit_layer_stop_animation(s_digit_layer);
+    general_magic_digit_layer_force_redraw(s_digit_layer);
+  }
+}
+
 static void prv_apply_animation_state(void) {
   if (!s_digit_layer) {
     return;
@@ -292,7 +303,7 @@ static void prv_window_load(Window *window) {
   }
 
   prv_apply_theme();
-  prv_apply_animation_state();
+  prv_prepare_animation_layers();
 }
 
 static void prv_window_unload(Window *window) {
