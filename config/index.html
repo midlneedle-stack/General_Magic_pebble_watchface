@@ -47,15 +47,26 @@
         display: flex;
         justify-content: center;
       }
-      .watch-preview {
+      .watch-frame {
         width: 100%;
-        border-radius: 22px;
+        display: flex;
+        justify-content: center;
+        padding: 18px;
+        border-radius: 16px;
+        background: #161616;
+        border: 1px solid #2b2b2b;
+      }
+      .watch-preview {
+        width: 144px;
+        height: 168px;
+        border-radius: 8px;
         overflow: hidden;
         border: 1px solid #2b2b2b;
       }
       .watch-preview img {
         width: 100%;
-        height: auto;
+        height: 100%;
+        object-fit: cover;
         display: block;
         image-rendering: pixelated;
       }
@@ -71,7 +82,7 @@
         gap: 22px;
       }
       .panel {
-        background: #000000;
+        background: #161616;
         padding: 18px 22px;
         border-radius: 16px;
         border: 1px solid #2b2b2b;
@@ -116,7 +127,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 39px;
+        height: 46px;
         border-radius: 100px;
         border: none;
         background: #161616;
@@ -169,7 +180,7 @@
       }
       .connect-button {
         flex: 1;
-        height: 39px;
+        height: 46px;
         border-radius: 100px;
         display: flex;
         align-items: center;
@@ -243,14 +254,16 @@
   <body data-ui-theme="dark">
     <div class="page">
       <div class="preview-wrapper">
-        <div class="watch-preview">
-          <img
-            id="watch-face"
-            src="../GeneralMagic_preview.png"
-            alt="General Magic watchface preview"
-            data-theme="dark"
-          />
-          <span id="watch-time" aria-hidden="true"></span>
+        <div class="watch-frame">
+          <div class="watch-preview">
+            <img
+              id="watch-face"
+              src="../GeneralMagic_preview.png"
+              alt="General Magic watchface preview"
+              data-theme="dark"
+            />
+            <span id="watch-time" aria-hidden="true"></span>
+          </div>
         </div>
       </div>
       <form id="config-form">
