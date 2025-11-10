@@ -48,10 +48,9 @@
       }
       .watch-preview {
         width: 100%;
-        max-width: 320px;
-        margin: 0 auto;
-        border-radius: 16px;
+        border-radius: 22px;
         overflow: hidden;
+        border: 1px solid #2b2b2b;
       }
       .watch-preview img {
         width: 100%;
@@ -71,7 +70,7 @@
         gap: 22px;
       }
       .panel {
-        background: #0c0c0c;
+        background: #000000;
         padding: 18px 22px;
         border-radius: 16px;
         border: 1px solid #2b2b2b;
@@ -92,7 +91,7 @@
       .field {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 16px;
       }
       .field-label {
         font-size: 12px;
@@ -140,6 +139,14 @@
         background: #2b2b2b;
         color: #ffffff;
       }
+      .field-divider {
+        height: 1px;
+        width: 100%;
+        background: #2b2b2b;
+      }
+      body[data-ui-theme='light'] .field-divider {
+        background: #d9d9d9;
+      }
       .vibe-options {
         margin-top: 16px;
       }
@@ -155,17 +162,17 @@
       button.save {
         width: 100%;
         padding: 14px;
-        border-radius: 16px;
-        border: 1px solid #ffffff;
+        border-radius: 100px;
+        border: none;
         font-size: 16px;
         font-weight: 600;
-        background: transparent;
-        color: #ffffff;
+        background: #ffffff;
+        color: #000000;
         cursor: pointer;
       }
       body[data-ui-theme='light'] button.save {
-        border-color: #2b2b2b;
-        color: #2b2b2b;
+        background: #2b2b2b;
+        color: #ffffff;
       }
       .footer-links {
         margin-top: 32px;
@@ -247,6 +254,7 @@
               <button type="button" data-value="false">OFF</button>
             </div>
           </div>
+          <div class="field-divider" aria-hidden="true"></div>
           <div class="field" id="hourly-chime-field">
             <div class="field-label">Hourly Chime</div>
             <div class="segmented" data-field="hourlyChime" data-type="bool">
@@ -269,25 +277,22 @@
           <button class="save" type="submit">SAVE</button>
         </div>
       </form>
-    <div class="footer-links">
-      <a href="https://x.com/midlneedle" target="_blank" rel="noopener noreferrer">
-        Twitter <span class="footer-link-arrow" aria-hidden="true">&nearr;</span>
-      </a>
-      <a
-        href="https://github.com/midlneedle-stack/General_Magic_pebble_watchface"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        GitHub <span class="footer-link-arrow" aria-hidden="true">&nearr;</span>
-      </a>
-      <a
-        href="https://www.are.na/vladislav-iv/channels"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Are.na <span class="footer-link-arrow" aria-hidden="true">&nearr;</span>
-      </a>
-    </div>
+      <div class="panel connect-panel">
+        <div class="field">
+          <div class="field-label">Connect</div>
+          <div class="connect-buttons">
+            <a href="https://x.com/midlneedle" class="connect-button" target="_blank" rel="noopener noreferrer">
+              Twitter
+            </a>
+            <a href="https://github.com/midlneedle-stack/General_Magic_pebble_watchface" class="connect-button" target="_blank" rel="noopener noreferrer">
+              GitHub
+            </a>
+            <a href="https://www.are.na/vladislav-iv/channels" class="connect-button" target="_blank" rel="noopener noreferrer">
+              Are.na
+            </a>
+          </div>
+        </div>
+      </div>
 
     <script>
       var DEFAULT_STATE = {
@@ -525,3 +530,37 @@
     </script>
   </body>
 </html>
+      .connect-buttons {
+        display: flex;
+        gap: 0;
+        padding: 3px;
+        border-radius: 100px;
+        background: #161616;
+        border: 1px solid #2b2b2b;
+      }
+      .connect-button {
+        flex: 1;
+        height: 39px;
+        border-radius: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 14px;
+        background: #161616;
+      }
+      .connect-button + .connect-button {
+        border-left: 1px solid #2b2b2b;
+      }
+      body[data-ui-theme='light'] .connect-buttons {
+        background: #e2e2e2;
+        border-color: #c6c6c6;
+      }
+      body[data-ui-theme='light'] .connect-button {
+        color: #2b2b2b;
+        background: #e2e2e2;
+      }
+      body[data-ui-theme='light'] .connect-button + .connect-button {
+        border-left: 1px solid #c6c6c6;
+      }
