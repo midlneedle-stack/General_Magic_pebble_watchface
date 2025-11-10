@@ -22,10 +22,18 @@
         background: #000000;
         color: #ffffff;
         min-height: 100vh;
+        background-image: radial-gradient(#1c1c1c 1px, transparent 0),
+          radial-gradient(#1c1c1c 1px, transparent 0);
+        background-size: 12px 12px;
+        background-position: 0 0, 6px 6px;
       }
       body[data-ui-theme='light'] {
         background: #ffffff;
         color: #2b2b2b;
+        background-image: radial-gradient(#cfcfcf 1px, transparent 0),
+          radial-gradient(#cfcfcf 1px, transparent 0);
+        background-size: 12px 12px;
+        background-position: 0 0, 6px 6px;
       }
       h1 {
         font-size: 20px;
@@ -39,25 +47,15 @@
         margin-bottom: 24px;
       }
       .watch-preview {
-        width: 220px;
-        height: 220px;
-        border-radius: 0;
-        padding: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid #2b2b2b;
-        background: #000000;
+        width: 100%;
+        max-width: 320px;
         margin: 0 auto 24px auto;
-      }
-      body[data-ui-theme='light'] .watch-preview {
-        border-color: #d1d1d1;
-        background: #ffffff;
       }
       .watch-preview img {
         width: 100%;
         height: auto;
         display: block;
+        image-rendering: pixelated;
       }
       body[data-ui-theme='light'] .watch-preview img {
         filter: invert(1) hue-rotate(180deg);
