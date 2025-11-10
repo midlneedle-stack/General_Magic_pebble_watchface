@@ -167,6 +167,9 @@
       .field-divider {
         margin: 16px 0;
       }
+      .field-divider.is-hidden {
+        display: none;
+      }
       body[data-ui-theme='light'] .field-divider {
         background: #d9d9d9;
       }
@@ -294,7 +297,7 @@
           </div>
         </div>
         <div class="field">
-          <div class="field-label">Animation On Open</div>
+          <div class="field-label">Animation On Start</div>
           <div class="segmented" data-field="animation" data-type="bool">
             <button type="button" data-value="true">ON</button>
             <button type="button" data-value="false">OFF</button>
@@ -313,7 +316,7 @@
         <div class="vibe-options" id="vibe-options">
           <div class="field-divider" aria-hidden="true"></div>
           <div class="field" id="vibrate-on-open-field">
-            <div class="field-label">Vibrate On Open</div>
+            <div class="field-label">Vibrate On Start</div>
             <div class="segmented" data-field="vibrateOnOpen" data-type="bool">
               <button type="button" data-value="true">ON</button>
               <button type="button" data-value="false">OFF</button>
