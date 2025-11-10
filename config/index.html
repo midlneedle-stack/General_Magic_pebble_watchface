@@ -174,7 +174,7 @@
         background: #d9d9d9;
       }
       #hourly-chime-strength-field {
-        margin-top: 0;
+        margin-top: 16px;
         padding-top: 0;
         border-top: none;
         display: none;
@@ -340,7 +340,6 @@
               <button type="button" data-value="false">OFF</button>
             </div>
           </div>
-          <div class="field-divider is-hidden" aria-hidden="true" id="hourly-chime-strength-divider"></div>
           <div class="field is-hidden" id="hourly-chime-strength-field">
             <div class="field-label">Hourly Chime Strength</div>
             <div class="segmented" data-field="hourlyChimeStrength">
@@ -453,7 +452,6 @@
       var vibeOptions = document.getElementById('vibe-options');
       var vibrateOnOpenField = document.getElementById('vibrate-on-open-field');
       var hourlyChimeField = document.getElementById('hourly-chime-field');
-      var hourlyChimeStrengthDivider = document.getElementById('hourly-chime-strength-divider');
       var hourlyChimeStrengthField = document.getElementById('hourly-chime-strength-field');
       var hourlyStrengthVisible = false;
 
@@ -541,9 +539,6 @@
         if (hourlyChimeField) {
           hourlyChimeField.classList.add('is-hidden');
         }
-        if (hourlyChimeStrengthDivider) {
-          hourlyChimeStrengthDivider.classList.remove('is-hidden');
-        }
         if (hourlyChimeStrengthField) {
           hourlyChimeStrengthField.classList.remove('is-hidden');
           hourlyChimeStrengthField.classList.add('is-visible');
@@ -554,9 +549,6 @@
         hourlyStrengthVisible = false;
         if (hourlyChimeField) {
           hourlyChimeField.classList.remove('is-hidden');
-        }
-        if (hourlyChimeStrengthDivider) {
-          hourlyChimeStrengthDivider.classList.add('is-hidden');
         }
         if (hourlyChimeStrengthField) {
           hourlyChimeStrengthField.classList.add('is-hidden');
