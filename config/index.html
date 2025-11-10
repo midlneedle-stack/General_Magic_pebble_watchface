@@ -70,7 +70,7 @@
         display: block;
         image-rendering: pixelated;
       }
-      body[data-ui-theme='light'] .watch-preview img {
+      .watch-preview img[data-theme='light'] {
         filter: invert(1) hue-rotate(180deg);
       }
       #watch-time {
@@ -177,6 +177,10 @@
         margin-top: 16px;
         padding-top: 16px;
         border-top: 1px solid #2b2b2b;
+        display: none;
+      }
+      #hourly-chime-strength-field.is-visible {
+        display: flex;
       }
       body[data-ui-theme='light'] #hourly-chime-strength-field {
         border-top: 1px solid #d9d9d9;
@@ -339,6 +343,7 @@
               <button type="button" data-value="false">OFF</button>
             </div>
           </div>
+          <div class="field-divider is-hidden" aria-hidden="true" id="hourly-chime-strength-divider"></div>
           <div class="field is-hidden" id="hourly-chime-strength-field">
             <div class="field-label">Hourly Chime Strength</div>
             <div class="segmented" data-field="hourlyChimeStrength">
@@ -451,6 +456,7 @@
       var vibeOptions = document.getElementById('vibe-options');
       var vibrateOnOpenField = document.getElementById('vibrate-on-open-field');
       var hourlyChimeField = document.getElementById('hourly-chime-field');
+      var hourlyChimeStrengthDivider = document.getElementById('hourly-chime-strength-divider');
       var hourlyChimeStrengthField = document.getElementById('hourly-chime-strength-field');
       var hourlyStrengthVisible = false;
 
@@ -460,7 +466,6 @@
 
       function updatePreview() {
         var theme = state.theme === 'light' ? 'light' : 'dark';
-        document.body.setAttribute('data-ui-theme', theme);
         if (watchFace) {
           watchFace.setAttribute('data-theme', theme);
         }
@@ -539,8 +544,12 @@
         if (hourlyChimeField) {
           hourlyChimeField.classList.add('is-hidden');
         }
+        if (hourlyChimeStrengthDivider) {
+          hourlyChimeStrengthDivider.classList.remove('is-hidden');
+        }
         if (hourlyChimeStrengthField) {
           hourlyChimeStrengthField.classList.remove('is-hidden');
+          hourlyChimeStrengthField.classList.add('is-visible');
         }
       }
 
@@ -549,8 +558,12 @@
         if (hourlyChimeField) {
           hourlyChimeField.classList.remove('is-hidden');
         }
+        if (hourlyChimeStrengthDivider) {
+          hourlyChimeStrengthDivider.classList.add('is-hidden');
+        }
         if (hourlyChimeStrengthField) {
           hourlyChimeStrengthField.classList.add('is-hidden');
+          hourlyChimeStrengthField.classList.remove('is-visible');
         }
       }
 
