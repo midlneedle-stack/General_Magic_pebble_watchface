@@ -174,6 +174,30 @@
           width 0.2s ease, left 0.2s ease;
         pointer-events: none;
       }
+      .ripple-button {
+        position: relative;
+        overflow: hidden;
+      }
+      .ripple-button .ripple {
+        position: absolute;
+        border-radius: 50%;
+        transform: scale(0);
+        opacity: 0.4;
+        animation: ripple-animation 0.6s linear;
+        pointer-events: none;
+      }
+      .ripple-button[data-ripple='light'] .ripple {
+        background: rgba(255, 255, 255, 0.35);
+      }
+      .ripple-button[data-ripple='dark'] .ripple {
+        background: rgba(0, 0, 0, 0.2);
+      }
+      @keyframes ripple-animation {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
       body[data-ui-theme='light'] .segmented {
         background: #e2e2e2;
         border-color: #c6c6c6;
@@ -322,7 +346,7 @@
       <div class="panel">
         <div class="field">
           <div class="field-label">Time Format</div>
-          <div class="segmented" data-field="timeFormat" data-type="bool">
+          <div class="segmented" data-field="timeFormat" data-knob="true">
             <button type="button" data-value="12">12 HOUR</button>
             <button type="button" data-value="24">24 HOUR</button>
           </div>
@@ -332,7 +356,7 @@
       <div class="panel">
         <div class="field">
           <div class="field-label">Theme</div>
-          <div class="segmented" data-field="theme" data-type="bool">
+          <div class="segmented" data-field="theme" data-knob="true">
             <button type="button" data-value="dark">DARK</button>
             <button type="button" data-value="light">LIGHT</button>
           </div>
@@ -373,7 +397,7 @@
           </div>
           <div class="field is-hidden" id="hourly-chime-strength-field">
             <div class="field-label">Hourly Chime Strength</div>
-            <div class="segmented" data-field="hourlyChimeStrength" data-type="bool">
+            <div class="segmented" data-field="hourlyChimeStrength" data-knob="true">
               <button type="button" data-value="light">LIGHT</button>
               <button type="button" data-value="medium">MEDIUM</button>
               <button type="button" data-value="hard">HARD</button>
@@ -383,20 +407,20 @@
       </div>
 
         <div class="actions">
-          <button class="save" type="submit">SAVE</button>
+          <button class="save ripple-button" data-ripple="dark" type="submit">SAVE</button>
         </div>
       </form>
       <div class="panel connect-panel">
         <div class="field">
           <div class="field-label">Connect</div>
           <div class="connect-buttons">
-            <a href="https://x.com/midlneedle" class="connect-button" target="_blank" rel="noopener noreferrer">
+            <a href="https://x.com/midlneedle" class="connect-button ripple-button" data-ripple="light" target="_blank" rel="noopener noreferrer">
               Twitter
             </a>
-            <a href="https://github.com/midlneedle-stack/General_Magic_pebble_watchface" class="connect-button" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/midlneedle-stack/General_Magic_pebble_watchface" class="connect-button ripple-button" data-ripple="light" target="_blank" rel="noopener noreferrer">
               GitHub
             </a>
-            <a href="https://www.are.na/vladislav-iv/channels" class="connect-button" target="_blank" rel="noopener noreferrer">
+            <a href="https://www.are.na/vladislav-iv/channels" class="connect-button ripple-button" data-ripple="light" target="_blank" rel="noopener noreferrer">
               Are.na
             </a>
           </div>
@@ -485,17 +509,25 @@
       var hourlyChimeField = document.getElementById('hourly-chime-field');
       var hourlyChimeStrengthField = document.getElementById('hourly-chime-strength-field');
       var hourlyStrengthVisible = false;
+
+      function segmentedNeedsKnob(group) {
+        if (!group) {
+          return false;
+        }
+        return group.hasAttribute('data-knob') || group.getAttribute('data-type') === 'bool';
+      }
+
       function initSegmentedKnobs() {
-        var boolGroups = document.querySelectorAll('.segmented[data-type="bool"]');
-        for (var i = 0; i < boolGroups.length; i += 1) {
-          var group = boolGroups[i];
-          if (group.classList.contains('knob-enabled')) {
+        var groups = document.querySelectorAll('.segmented');
+        for (var i = 0; i < groups.length; i += 1) {
+          var group = groups[i];
+          if (!segmentedNeedsKnob(group) || group.classList.contains('knob-enabled')) {
             continue;
           }
-          group.classList.add('knob-enabled');
           var knob = document.createElement('div');
           knob.className = 'segmented-knob';
           group.insertBefore(knob, group.firstChild);
+          group.classList.add('knob-enabled');
         }
       }
 
@@ -512,12 +544,6 @@
           return;
         }
         var referenceButton = buttons[0];
-        var width = referenceButton.offsetWidth;
-        if (!width) {
-          return;
-        }
-        knob.style.width = width + 'px';
-        knob.style.left = referenceButton.offsetLeft + 'px';
         var activeIndex = 0;
         for (var i = 0; i < buttons.length; i += 1) {
           if (buttons[i].classList.contains('active')) {
@@ -525,7 +551,14 @@
             break;
           }
         }
-        knob.style.transform = 'translateX(' + activeIndex * width + 'px)';
+        var activeButton = buttons[activeIndex];
+        var buttonWidth = activeButton.offsetWidth;
+        if (!buttonWidth) {
+          return;
+        }
+        var offset = activeButton.offsetLeft - referenceButton.offsetLeft;
+        knob.style.width = buttonWidth + 'px';
+        knob.style.transform = 'translateX(' + offset + 'px)';
       }
 
       function updateAllSegmentedKnobs() {
@@ -535,8 +568,29 @@
         }
       }
 
+      function attachRippleHandlers() {
+        var rippleTargets = document.querySelectorAll('.ripple-button');
+        rippleTargets.forEach(function (target) {
+          target.addEventListener('click', function (event) {
+            var rect = target.getBoundingClientRect();
+            var ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            var size = Math.max(rect.width, rect.height);
+            ripple.style.width = size + 'px';
+            ripple.style.height = size + 'px';
+            ripple.style.left = event.clientX - rect.left - size / 2 + 'px';
+            ripple.style.top = event.clientY - rect.top - size / 2 + 'px';
+            target.appendChild(ripple);
+            setTimeout(function () {
+              ripple.remove();
+            }, 600);
+          });
+        });
+      }
+
       initSegmentedKnobs();
       updateAllSegmentedKnobs();
+      attachRippleHandlers();
 
       function pad(num) {
         return (num < 10 ? '0' : '') + num;
