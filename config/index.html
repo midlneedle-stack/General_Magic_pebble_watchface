@@ -4,10 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>General Magic Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <style>
       * {
         box-sizing: border-box;
-        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont,
+        font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont,
           'Segoe UI', sans-serif;
       }
       body {
@@ -33,41 +39,20 @@
         margin-bottom: 24px;
       }
       .watch-preview {
-        width: 220px;
-        height: 220px;
-        border-radius: 0;
-        padding: 24px;
+        width: min(100%, 260px);
         display: flex;
-        align-items: center;
         justify-content: center;
-        border: 1px solid #2b2b2b;
-        background: #000000;
       }
-      body[data-ui-theme='light'] .watch-preview {
-        border-color: #d1d1d1;
-        background: #ffffff;
+      .watch-preview img {
+        width: 100%;
+        height: auto;
+        display: block;
       }
-      .watch-face {
-        width: 160px;
-        height: 160px;
-        border-radius: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 48px;
-        font-weight: 600;
-        letter-spacing: 2px;
-        transition: background 0.2s ease, color 0.2s ease;
+      body[data-ui-theme='light'] .watch-preview img[data-theme='light'] {
+        filter: invert(1) hue-rotate(180deg);
       }
-      .watch-face[data-theme='dark'] {
-        background: #000000;
-        color: #ffffff;
-        border: 1px solid #ffffff33;
-      }
-      .watch-face[data-theme='light'] {
-        background: #ffffff;
-        color: #000000;
-        border: 1px solid #00000033;
+      #watch-time {
+        display: none;
       }
       .panel {
         background: transparent;
@@ -174,9 +159,13 @@
   <body data-ui-theme="dark">
     <div class="preview-wrapper">
       <div class="watch-preview">
-        <div class="watch-face" id="watch-face" data-theme="dark">
-          <span id="watch-time">10:08</span>
-        </div>
+        <img
+          src="../GeneralMagic_preview.png"
+          alt="General Magic watchface preview"
+          id="watch-face"
+          data-theme="dark"
+        />
+        <span id="watch-time" aria-hidden="true"></span>
       </div>
     </div>
     <form id="config-form">
