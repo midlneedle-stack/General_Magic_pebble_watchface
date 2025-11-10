@@ -577,9 +577,7 @@ void general_magic_digit_layer_set_time(GeneralMagicDigitLayer *layer,
       time_info->tm_min % 10,
   };
 
-  if (!use_24h && hour < 10) {
-    new_digits[0] = -1;
-  }
+  (void)use_24h;  // keep leading zero even in 12h mode
 
   bool changed = (state->use_24h_time != use_24h);
   for (int i = 0; i < GENERAL_MAGIC_DIGIT_COUNT; ++i) {
