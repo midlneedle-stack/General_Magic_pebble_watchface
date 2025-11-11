@@ -396,7 +396,7 @@ static int prv_shape_level_for_progress(float progress) {
   if (progress < 0.6f) {
     return 1;
   }
-  if (progress < 0.92f) {
+  if (progress <= 1.0f) {
     return 0;
   }
   return -1;

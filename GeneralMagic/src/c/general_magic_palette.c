@@ -29,7 +29,7 @@ static inline GeneralMagicThemePalette prv_palette(void) {
     palette.digit_stage[0] = PBL_IF_COLOR_ELSE(GColorFromRGB(0x55, 0x55, 0x55), GColorWhite);
     palette.digit_stage[1] = PBL_IF_COLOR_ELSE(GColorFromRGB(0xAA, 0xAA, 0xAA), GColorWhite);
     palette.digit_stage[2] = GColorWhite;
-    palette.background_stage[0] = PBL_IF_COLOR_ELSE(GColorFromRGB(0x33, 0x33, 0x33), GColorWhite);
+    palette.background_stage[0] = PBL_IF_COLOR_ELSE(GColorFromRGB(0x55, 0x55, 0x55), GColorWhite);
     palette.background_stage[1] = PBL_IF_COLOR_ELSE(GColorFromRGB(0xAA, 0xAA, 0xAA), GColorWhite);
     palette.background_stage[2] = PBL_IF_COLOR_ELSE(GColorWhite, GColorWhite);
   }
