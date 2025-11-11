@@ -396,7 +396,7 @@ static int prv_shape_level_for_progress(float progress) {
   if (progress < 0.6f) {
     return 1;
   }
-  if (progress <= 1.0f) {
+  if (progress < 0.92f) {
     return 0;
   }
   return -1;
@@ -583,9 +583,13 @@ static void prv_background_update_proc(Layer *layer_ref, GContext *ctx) {
       if (!prv_cell_progress_value(state, cell, &progress)) {
         continue;
       }
-      const int size_level = prv_shape_level_for_progress(progress);
+      int size_level = prv_shape_level_for_progress(progress);
       if (size_level < 0) {
-        continue;
+        if (!cell->is_digit) {
+          size_level = 0;
+        } else {
+          continue;
+        }
       }
       const GColor color = prv_color_for_progress(progress, cell->is_digit);
       graphics_context_set_stroke_color(ctx, color);
