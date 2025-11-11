@@ -19,7 +19,7 @@ static inline GeneralMagicThemePalette prv_palette(void) {
     palette.digit_stage[0] = PBL_IF_COLOR_ELSE(GColorFromRGB(0xAA, 0xAA, 0xAA), GColorBlack);
     palette.digit_stage[1] = PBL_IF_COLOR_ELSE(GColorFromRGB(0x66, 0x66, 0x66), GColorBlack);
     palette.digit_stage[2] = GColorBlack;
-    palette.background_stage[0] = PBL_IF_COLOR_ELSE(GColorFromRGB(0xEE, 0xEE, 0xEE), GColorBlack);
+    palette.background_stage[0] = PBL_IF_COLOR_ELSE(GColorFromRGB(0x55, 0x55, 0x55), GColorBlack);
     palette.background_stage[1] = PBL_IF_COLOR_ELSE(GColorFromRGB(0x55, 0x55, 0x55), GColorBlack);
     palette.background_stage[2] = PBL_IF_COLOR_ELSE(GColorWhite, GColorBlack);
   } else {
