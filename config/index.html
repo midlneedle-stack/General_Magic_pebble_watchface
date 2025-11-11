@@ -62,7 +62,6 @@
         border-radius: 12px;
         overflow: hidden;
         border: 1px solid #2b2b2b;
-        position: relative;
       }
       .watch-preview img {
         width: 100%;
@@ -74,23 +73,6 @@
       }
       .watch-preview[data-theme='light'] img {
         filter: invert(1) hue-rotate(180deg);
-      }
-      .watch-time {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 36px;
-        font-weight: 600;
-        letter-spacing: 2px;
-        color: #ffffff;
-        text-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
-        pointer-events: none;
-      }
-      .watch-preview[data-theme='light'] .watch-time {
-        color: #000000;
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
       }
       form {
         display: flex;
@@ -362,7 +344,6 @@
               alt="General Magic watchface preview"
               data-theme="dark"
             />
-            <div class="watch-time" id="watch-time" aria-hidden="true"></div>
           </div>
         </div>
       </div>
@@ -526,9 +507,8 @@
 
       var state = loadState();
       var form = document.getElementById('config-form');
-      var watchPreview = document.getElementById('watch-preview-container');
-      var watchFace = document.getElementById('watch-face');
-      var watchTime = document.getElementById('watch-time');
+var watchPreview = document.getElementById('watch-preview-container');
+var watchFace = document.getElementById('watch-face');
       var vibeOptions = document.getElementById('vibe-options');
       var vibrateOnOpenField = document.getElementById('vibrate-on-open-field');
       var hourlyChimeField = document.getElementById('hourly-chime-field');
@@ -617,10 +597,6 @@
       updateAllSegmentedKnobs();
       attachRippleHandlers();
 
-      function pad(num) {
-        return (num < 10 ? '0' : '') + num;
-      }
-
       function updatePreview() {
         var theme = state.theme === 'light' ? 'light' : 'dark';
         if (watchPreview) {
@@ -628,18 +604,13 @@
         }
         if (watchFace) {
           watchFace.setAttribute('data-theme', theme);
-        }
-        var now = new Date();
-        var hours = now.getHours();
-        if (state.timeFormat === '12') {
-          hours = hours % 12;
-          if (hours === 0) {
-            hours = 12;
+          var previewSrc =
+            state.timeFormat === '12'
+              ? '../GeneralMagic_preview_12h.png'
+              : '../GeneralMagic_preview.png';
+          if (watchFace.getAttribute('src') !== previewSrc) {
+            watchFace.setAttribute('src', previewSrc);
           }
-        }
-        var minutes = now.getMinutes();
-        if (watchTime) {
-          watchTime.textContent = pad(hours) + ':' + pad(minutes);
         }
       }
 
