@@ -7,7 +7,7 @@
   "dependencies": {},
   "pebble": {
     "displayName": "General Magic",
-    "uuid": "00000000-0000-0000-0000-000000000001",
+    "uuid": "7d34709c-390f-4056-a315-2dd318cfed8f",
     "sdkVersion": "3",
     "enableMultiJS": true,
     "projectType": "native",

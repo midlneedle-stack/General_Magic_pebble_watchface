@@ -14,13 +14,13 @@ static inline GeneralMagicThemePalette prv_palette(void) {
   GeneralMagicThemePalette palette;
   if (s_current_theme == GENERAL_MAGIC_THEME_LIGHT) {
     palette.background_fill = GColorWhite;
-    palette.grid_stroke = PBL_IF_COLOR_ELSE(GColorFromRGB(0x55, 0x55, 0x55), GColorBlack);
+    palette.grid_stroke = PBL_IF_COLOR_ELSE(GColorFromRGB(0xAA, 0xAA, 0xAA), GColorBlack);
     palette.digit_stroke = GColorBlack;
     palette.digit_stage[0] = PBL_IF_COLOR_ELSE(GColorFromRGB(0xAA, 0xAA, 0xAA), GColorBlack);
     palette.digit_stage[1] = PBL_IF_COLOR_ELSE(GColorFromRGB(0x66, 0x66, 0x66), GColorBlack);
     palette.digit_stage[2] = GColorBlack;
-    palette.background_stage[0] = PBL_IF_COLOR_ELSE(GColorFromRGB(0x55, 0x55, 0x55), GColorBlack);
-    palette.background_stage[1] = PBL_IF_COLOR_ELSE(GColorFromRGB(0x55, 0x55, 0x55), GColorBlack);
+    palette.background_stage[0] = PBL_IF_COLOR_ELSE(GColorFromRGB(0xAA, 0xAA, 0xAA), GColorBlack);
+    palette.background_stage[1] = PBL_IF_COLOR_ELSE(GColorFromRGB(0xAA, 0xAA, 0xAA), GColorBlack);
     palette.background_stage[2] = PBL_IF_COLOR_ELSE(GColorWhite, GColorBlack);
   } else {
     palette.background_fill = GColorBlack;
