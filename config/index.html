@@ -317,6 +317,10 @@
         transform: translateY(-6px);
         margin-top: 0;
       }
+      .vibe-options.is-animating {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
       .vibe-options .field-divider {
         margin: 0;
       }
@@ -786,7 +790,15 @@
           return;
         }
         if (state.vibration) {
-          vibeOptions.classList.remove('is-hidden');
+          vibeOptions.classList.add('is-animating');
+          // allow transition to pick up before removing hidden state
+          requestAnimationFrame(function () {
+            vibeOptions.classList.remove('is-hidden');
+            // clear animating marker after transition frame
+            requestAnimationFrame(function () {
+              vibeOptions.classList.remove('is-animating');
+            });
+          });
         } else {
           vibeOptions.classList.add('is-hidden');
           hideHourlyStrengthChooser();
