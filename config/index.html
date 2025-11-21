@@ -84,11 +84,15 @@
         display: block;
         image-rendering: pixelated;
         opacity: 0;
+        z-index: 1;
         transition: opacity 0.35s cubic-bezier(0.5, 0, 0, 1),
           filter 0.35s ease;
       }
       .watch-preview img.is-visible {
         opacity: 1;
+      }
+      .watch-preview img.is-foreground {
+        z-index: 2;
       }
       .watch-preview[data-theme='light'] img {
         filter: invert(1) hue-rotate(180deg);
@@ -686,13 +690,40 @@
       updateAllSegmentedKnobs();
       setWatchPreviewImages();
 
+      var previewFadeTimer = null;
+
       function setWatchPreviewImages() {
         if (!watchFace12 || !watchFace24) {
           return;
         }
         var show12 = state.timeFormat === '12';
-        watchFace12.classList.toggle('is-visible', show12);
-        watchFace24.classList.toggle('is-visible', !show12);
+        var entering = show12 ? watchFace12 : watchFace24;
+        var exiting = show12 ? watchFace24 : watchFace12;
+        var reduceMotion =
+          typeof window !== 'undefined' &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        entering.classList.add('is-foreground');
+        exiting.classList.remove('is-foreground');
+
+        if (previewFadeTimer) {
+          clearTimeout(previewFadeTimer);
+          previewFadeTimer = null;
+        }
+
+        if (reduceMotion) {
+          entering.classList.add('is-visible');
+          exiting.classList.remove('is-visible');
+          return;
+        }
+
+        requestAnimationFrame(function () {
+          entering.classList.add('is-visible');
+          previewFadeTimer = setTimeout(function () {
+            exiting.classList.remove('is-visible');
+            previewFadeTimer = null;
+          }, 360);
+        });
       }
 
       function updatePreview() {
